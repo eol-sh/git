@@ -14,6 +14,8 @@ import { branch } from "./api/branch.ts";
 import { checkout } from "./api/checkout.ts";
 import { clone } from "./api/clone.ts";
 import { commit } from "./api/commit.ts";
+import { createAuthor, getDefaults, withDefaults } from "./utils/simple.ts";
+import { createFileSystem, fs as defaultFs } from "./utils/default-filesystem.ts";
 import { currentBranch } from "./api/current-branch.ts";
 import { deleteBranch } from "./api/delete-branch.ts";
 import { deleteRef } from "./api/delete-ref.ts";
@@ -94,7 +96,10 @@ export {
   checkout,
   clone,
   commit,
+  createAuthor,
+  createFileSystem,
   currentBranch,
+  defaultFs,
   deleteBranch,
   deleteRef,
   deleteRemote,
@@ -109,6 +114,7 @@ export {
   findRoot,
   getConfig,
   getConfigAll,
+  getDefaults,
   getRemoteInfo,
   getRemoteInfo2,
   hashBlob,
@@ -149,6 +155,7 @@ export {
   updateIndex,
   version,
   walk,
+  withDefaults,
   WORKDIR,
   writeBlob,
   writeCommit,
@@ -168,7 +175,10 @@ export default {
   checkout,
   clone,
   commit,
+  createAuthor,
+  createFileSystem,
   currentBranch,
+  defaultFs,
   deleteBranch,
   deleteRef,
   deleteRemote,
@@ -183,6 +193,7 @@ export default {
   findRoot,
   getConfig,
   getConfigAll,
+  getDefaults,
   getRemoteInfo,
   getRemoteInfo2,
   hashBlob,
@@ -223,6 +234,7 @@ export default {
   updateIndex,
   version,
   walk,
+  withDefaults,
   WORKDIR,
   writeBlob,
   writeCommit,
