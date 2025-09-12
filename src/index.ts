@@ -23,6 +23,7 @@ import { expandOid } from "./api/expand-oid.ts";
 import { expandRef } from "./api/expand-ref.ts";
 import { fastForward } from "./api/fast-forward.ts";
 import { fetch } from "./api/fetch.ts";
+import { FileSystem } from "./models/file-system.ts";
 import { findMergeBase } from "./api/find-merge-base.ts";
 import { findRoot } from "./api/find-root.ts";
 import { getConfig } from "./api/get-config.ts";
@@ -103,6 +104,7 @@ export {
   expandRef,
   fastForward,
   fetch,
+  FileSystem,
   findMergeBase,
   findRoot,
   getConfig,
@@ -176,6 +178,7 @@ export default {
   expandRef,
   fastForward,
   fetch,
+  FileSystem,
   findMergeBase,
   findRoot,
   getConfig,
