@@ -173,8 +173,8 @@ export class FileSystem {
         if (parent === "." || parent === "/" || parent === filepath)
           throw err;
 
-        /*** Infinite recursion, what could go wrong? ***/
-        await this.mkdir(parent);
+        /*** Create parent directory recursively ***/
+        await this.mkdir(parent, true);
         await this.mkdir(filepath, true);
       }
     }

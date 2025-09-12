@@ -42,7 +42,11 @@ export async function init({
     if (!bare)
       assertParameter("dir", dir);
 
-    const fileSystem = new FileSystem(_fs);
+    /*** Check if _fs is already a FileSystem instance ***/
+    const fileSystem = _fs instanceof FileSystem ?
+      _fs :
+      new FileSystem(_fs);
+
     const fs = adaptFileSystem(fileSystem);
 
     return await _init({

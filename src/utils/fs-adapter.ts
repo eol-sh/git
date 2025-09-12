@@ -78,25 +78,12 @@ export function createUnifiedAdapter(fileSystem: FileSystem): UnifiedFileSystemL
  */
 export function adaptFileSystem(fileSystem: FileSystem): FsInterface {
   return {
-    lstat: (path: string) => fileSystem.lstat(path).then(stat => (stat as any) || {
-      atime: new Date(),
-      birthtime: new Date(),
-      blksize: 0,
-      blocks: 0,
-      ctime: new Date(),
-      dev: 0,
-      gid: 0,
-      ino: 0,
-      isDirectory: () => false,
-      isFile: () => false,
-      isSymbolicLink: () => false,
-      mode: 0,
-      mtime: new Date(),
-      nlink: 0,
-      rdev: 0,
-      size: 0,
-      uid: 0
-    } as unknown as Deno.FileInfo),
+    lstat: (path: string) => fileSystem.lstat(path).then(stat => {
+      if (stat === null)
+        throw new Error(`No such file or directory: ${path}`);
+
+      return stat as any;
+    }),
     mkdir: (path: string, _options?: { recursive?: boolean }) => fileSystem.mkdir(path),
     readdir: (path: string) => fileSystem.readdir(path).then(result => result || []),
     readFile: (path: string) => fileSystem.read(path).then(result => {
@@ -109,25 +96,12 @@ export function adaptFileSystem(fileSystem: FileSystem): FsInterface {
       return result;
     }),
     rmdir: (path: string) => fileSystem.rmdir(path),
-    stat: (path: string) => fileSystem.lstat(path).then(stat => (stat as any) || {
-      atime: new Date(),
-      birthtime: new Date(),
-      blksize: 0,
-      blocks: 0,
-      ctime: new Date(),
-      dev: 0,
-      gid: 0,
-      ino: 0,
-      isDirectory: () => false,
-      isFile: () => false,
-      isSymbolicLink: () => false,
-      mode: 0,
-      mtime: new Date(),
-      nlink: 0,
-      rdev: 0,
-      size: 0,
-      uid: 0
-    } as unknown as Deno.FileInfo),
+    stat: (path: string) => fileSystem.lstat(path).then(stat => {
+      if (stat === null)
+        throw new Error(`No such file or directory: ${path}`);
+
+      return stat as any;
+    }),
     unlink: (path: string) => fileSystem.rm(path),
     writeFile: (path: string, data: Uint8Array) => fileSystem.write(path, data)
   };
