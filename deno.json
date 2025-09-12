@@ -1,0 +1,55 @@
+{
+  "compilerOptions": {
+    "exactOptionalPropertyTypes": true,
+    "lib": ["deno.window", "dom", "dom.iterable", "es2022"],
+    "noImplicitAny": false,
+    "noImplicitReturns": true,
+    "noImplicitThis": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "strict": true
+  },
+  "exports": {
+    ".": "./src/index.ts",
+    "./http/node": "./src/http/node/index.ts",
+    "./http/web": "./src/http/web/index.ts"
+  },
+  "fmt": {
+    "include": ["src/**/*.ts", "__tests__/**/*.ts"],
+    "indentWidth": 2,
+    "lineWidth": 200,
+    "proseWrap": "preserve",
+    "semiColons": true,
+    "singleQuote": false,
+    "useTabs": false
+  },
+  "imports": {
+    "async-lock": "./src/compat/async-lock.ts",
+    "clean-git-ref": "./src/utils/clean-git-ref.ts",
+    "crc-32": "./src/compat/crc-32.ts",
+    "diff3": "./src/utils/diff3.ts",
+    "ignore": "./src/compat/ignore.ts",
+    "pako": "./src/compat/pako.ts",
+    "pify": "./src/compat/pify.ts"
+  },
+  "license": "MIT",
+  "lint": {
+    "include": ["src/**/*.ts", "__tests__/**/*.ts"],
+    "rules": {
+      "exclude": ["no-explicit-any"],
+      "tags": ["recommended"]
+    }
+  },
+  "lock": false,
+  "name": "@eol/git",
+  "tasks": {
+    "check": "deno check src/index.ts",
+    "dev": "deno run --allow-env --allow-net --allow-read --allow-write src/index.ts",
+    "fmt": "deno fmt src/",
+    "lint": "deno lint src/",
+    "test": "deno test --allow-env --allow-net --allow-read --allow-write --no-check __tests__/",
+    "--test:watch": "deno test --allow-env --allow-net --allow-read --allow-write --no-check --watch __tests__/",
+    "type-check": "deno check --all src/**/*.ts"
+  },
+  "version": "0.1.0"
+}
