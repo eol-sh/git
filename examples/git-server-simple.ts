@@ -205,6 +205,15 @@ class GitServer {
         }
 
         case "init": {
+          /*** Ensure the parent directory exists before initializing ***/
+          try {
+            await Deno.mkdir(dir, { recursive: true });
+          } catch(error) {
+            /*** Directory might already exist, which is fine ***/
+            if (!(error instanceof Deno.errors.AlreadyExists))
+              throw error;
+          }
+
           await git.init({
             defaultBranch: params.defaultBranch || "primary",
             dir,
