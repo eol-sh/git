@@ -10,8 +10,10 @@ import { add } from "./api/add.ts";
 import { addNote } from "./api/add-note.ts";
 import { addRemote } from "./api/add-remote.ts";
 import { annotatedTag } from "./api/annotated-tag.ts";
+import { blame } from "./api/blame.ts";
 import { branch } from "./api/branch.ts";
 import { checkout } from "./api/checkout.ts";
+import { cherryPick } from "./api/cherry-pick.ts";
 import { clone } from "./api/clone.ts";
 import { commit } from "./api/commit.ts";
 import { createAuthor, getDefaults, withDefaults } from "./utils/simple.ts";
@@ -21,6 +23,7 @@ import { deleteBranch } from "./api/delete-branch.ts";
 import { deleteRef } from "./api/delete-ref.ts";
 import { deleteRemote } from "./api/delete-remote.ts";
 import { deleteTag } from "./api/delete-tag.ts";
+import { diff } from "./api/diff.ts";
 import { expandOid } from "./api/expand-oid.ts";
 import { expandRef } from "./api/expand-ref.ts";
 import { fastForward } from "./api/fast-forward.ts";
@@ -55,12 +58,17 @@ import { readNote } from "./api/read-note.ts";
 import { readObject } from "./api/read-object.ts";
 import { readTag } from "./api/read-tag.ts";
 import { readTree } from "./api/read-tree.ts";
+import { rebase } from "./api/rebase.ts";
+import { bisect } from "./api/bisect.ts";
 import { remove } from "./api/remove.ts";
 import { removeNote } from "./api/remove-note.ts";
 import { renameBranch } from "./api/rename-branch.ts";
+import { reset } from "./api/reset.ts";
 import { resetIndex } from "./api/reset-index.ts";
 import { resolveRef } from "./api/resolve-ref.ts";
+import { revert } from "./api/revert.ts";
 import { setConfig } from "./api/set-config.ts";
+import { show } from "./api/show.ts";
 import { STAGE } from "./api/stage.ts";
 import { TREE } from "./api/tree.ts";
 import { WORKDIR } from "./api/workdir.ts";
@@ -92,8 +100,11 @@ export {
   addNote,
   addRemote,
   annotatedTag,
+  bisect,
+  blame,
   branch,
   checkout,
+  cherryPick,
   clone,
   commit,
   createAuthor,
@@ -104,6 +115,7 @@ export {
   deleteRef,
   deleteRemote,
   deleteTag,
+  diff,
   Errors,
   expandOid,
   expandRef,
@@ -140,12 +152,16 @@ export {
   readObject,
   readTag,
   readTree,
+  rebase,
   remove,
   removeNote,
   renameBranch,
+  reset,
   resetIndex,
   resolveRef,
+  revert,
   setConfig,
+  show,
   STAGE,
   stash,
   status,
@@ -171,8 +187,11 @@ export default {
   addNote,
   addRemote,
   annotatedTag,
+  bisect,
+  blame,
   branch,
   checkout,
+  cherryPick,
   clone,
   commit,
   createAuthor,
@@ -183,6 +202,7 @@ export default {
   deleteRef,
   deleteRemote,
   deleteTag,
+  diff,
   Errors,
   expandOid,
   expandRef,
@@ -219,12 +239,16 @@ export default {
   readObject,
   readTag,
   readTree,
+  rebase,
   remove,
   removeNote,
   renameBranch,
+  reset,
   resetIndex,
   resolveRef,
+  revert,
   setConfig,
+  show,
   STAGE,
   stash,
   status,

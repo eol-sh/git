@@ -4,3 +4,6 @@ git-demo-repo
 
 # File
 .DS_Store
+
+# Continuous Claude cache (local only)
+.claude/cache/

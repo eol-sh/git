@@ -1,0 +1,566 @@
+/**
+ * Core rebase command implementation
+ * Reapplies commits from one branch onto another
+ */
+
+import { _cherryPick } from "../commands/cherry-pick.ts";
+import { _readObject } from "../storage/read-object.ts";
+import { _resolveRef } from "../commands/resolve-ref.ts";
+import { _writeObject } from "../storage/write-object.ts";
+import { FileSystem } from "../models/file-system.ts";
+import { GitRefManager } from "../managers/git-ref.ts";
+import { join } from "../utils/join.ts";
+import { NotFoundError } from "../errors/not-found.ts";
+import { ObjectTypeError } from "../errors/object-type.ts";
+import { 
+  RebaseState, 
+  RebaseOptions, 
+  RebaseResult, 
+  RebaseTodoItem, 
+  RebaseAction,
+  REBASE_PATHS 
+} from "../models/rebase-state.ts";
+import { 
+  parseRebaseTodo, 
+  formatRebaseTodo, 
+  createDefaultTodoList,
+  validateTodoList,
+  applyAutosquash
+} from "../utils/rebase-todo.ts";
+
+import type { Cache } from "../types.ts";
+
+interface RebaseCommandOptions {
+  cache: Cache;
+  dir: string;
+  fs: FileSystem;
+  gitdir: string;
+  options: RebaseOptions;
+}
+
+/**
+ * Internal rebase command - reapply commits on new base
+ */
+export async function _rebase({
+  cache,
+  dir,
+  fs,
+  gitdir,
+  options
+}: RebaseCommandOptions): Promise<RebaseResult> {
+  const {
+    onto,
+    upstream,
+    branch,
+    interactive = false,
+    autosquash = false,
+    onEdit
+  } = options;
+
+  // Check if rebase is already in progress
+  const rebaseDir = join(gitdir, REBASE_PATHS.DIR);
+  const rebaseInProgress = await fs.exists?.(rebaseDir) ?? false;
+
+  if (rebaseInProgress) {
+    throw new Error("Rebase already in progress. Use --continue, --abort, or --skip");
+  }
+
+  // Resolve refs
+  const ontoOid = onto ? await resolveCommit(fs, gitdir, cache, onto) : null;
+  const upstreamOid = upstream ? await resolveCommit(fs, gitdir, cache, upstream) : null;
+  const branchOid = branch ? await resolveCommit(fs, gitdir, cache, branch) : 
+    await _resolveRef({ cache, fs, gitdir, ref: "HEAD" });
+
+  if (!branchOid) {
+    throw new NotFoundError("Current HEAD");
+  }
+
+  // Determine the onto commit
+  let targetOnto = ontoOid;
+  if (!targetOnto && upstreamOid) {
+    targetOnto = upstreamOid;
+  }
+  if (!targetOnto) {
+    throw new Error("Must specify either --onto or --upstream");
+  }
+
+  // Get commit range to rebase
+  const commitsToRebase = await getCommitRange({
+    fs,
+    gitdir,
+    cache,
+    from: upstreamOid || targetOnto,
+    to: branchOid
+  });
+
+  if (commitsToRebase.length === 0) {
+    return {
+      success: true,
+      message: "Current branch is up to date"
+    };
+  }
+
+  // Create todo list
+  let todoItems = createDefaultTodoList(commitsToRebase);
+
+  // Apply autosquash if enabled
+  if (autosquash) {
+    todoItems = applyAutosquash(todoItems);
+  }
+
+  // Interactive mode - allow user to edit todo list
+  if (interactive && onEdit) {
+    const todoText = formatRebaseTodo(todoItems);
+    const editedText = await onEdit(todoText);
+    todoItems = parseRebaseTodo(editedText);
+
+    // Validate edited todo list
+    const validation = validateTodoList(todoItems);
+    if (!validation.valid) {
+      throw new Error(`Invalid todo list: ${validation.errors.join(", ")}`);
+    }
+  }
+
+  // Initialize rebase state
+  const state: RebaseState = {
+    onto: targetOnto,
+    orig_head: branchOid,
+    head_name: await getCurrentBranchName(fs, gitdir),
+    todo: todoItems,
+    current: 0,
+    interactive,
+    abort_safety: branchOid
+  };
+
+  // Save rebase state
+  await saveRebaseState(fs, gitdir, state);
+
+  try {
+    // Checkout onto commit
+    await checkoutCommit({ cache, dir, fs, gitdir, oid: targetOnto });
+
+    // Execute rebase
+    const result = await executeRebase({
+      cache,
+      dir,
+      fs,
+      gitdir,
+      state
+    });
+
+    // Clean up if successful
+    if (result.success) {
+      await cleanupRebaseState(fs, gitdir);
+    }
+
+    return result;
+  } catch (error) {
+    // Save state on error for potential continue/abort
+    await saveRebaseState(fs, gitdir, state);
+    throw error;
+  }
+}
+
+/**
+ * Continue rebase after resolving conflicts
+ */
+export async function _rebaseContinue({
+  cache,
+  dir,
+  fs,
+  gitdir
+}: {
+  cache: Cache;
+  dir: string;
+  fs: FileSystem;
+  gitdir: string;
+}): Promise<RebaseResult> {
+  const state = await loadRebaseState(fs, gitdir);
+  
+  if (!state) {
+    throw new Error("No rebase in progress");
+  }
+
+  // Continue from current position
+  return await executeRebase({
+    cache,
+    dir,
+    fs,
+    gitdir,
+    state
+  });
+}
+
+/**
+ * Abort rebase and return to original state
+ */
+export async function _rebaseAbort({
+  cache,
+  dir,
+  fs,
+  gitdir
+}: {
+  cache: Cache;
+  dir: string;
+  fs: FileSystem;
+  gitdir: string;
+}): Promise<RebaseResult> {
+  const state = await loadRebaseState(fs, gitdir);
+  
+  if (!state) {
+    throw new Error("No rebase in progress");
+  }
+
+  // Checkout original HEAD
+  await checkoutCommit({ cache, dir, fs, gitdir, oid: state.orig_head });
+
+  // Clean up rebase state
+  await cleanupRebaseState(fs, gitdir);
+
+  return {
+    success: true,
+    aborted: true,
+    message: "Rebase aborted"
+  };
+}
+
+/**
+ * Skip current commit and continue rebase
+ */
+export async function _rebaseSkip({
+  cache,
+  dir,
+  fs,
+  gitdir
+}: {
+  cache: Cache;
+  dir: string;
+  fs: FileSystem;
+  gitdir: string;
+}): Promise<RebaseResult> {
+  const state = await loadRebaseState(fs, gitdir);
+  
+  if (!state) {
+    throw new Error("No rebase in progress");
+  }
+
+  // Skip current todo item
+  state.current++;
+
+  // Save updated state
+  await saveRebaseState(fs, gitdir, state);
+
+  // Continue rebase
+  return await executeRebase({
+    cache,
+    dir,
+    fs,
+    gitdir,
+    state
+  });
+}
+
+/**
+ * Execute the rebase process
+ */
+async function executeRebase({
+  cache,
+  dir,
+  fs,
+  gitdir,
+  state
+}: {
+  cache: Cache;
+  dir: string;
+  fs: FileSystem;
+  gitdir: string;
+  state: RebaseState;
+}): Promise<RebaseResult> {
+  while (state.current < state.todo.length) {
+    const currentTodo = state.todo[state.current];
+    
+    try {
+      const result = await executeTodoItem({
+        cache,
+        dir,
+        fs,
+        gitdir,
+        item: currentTodo
+      });
+
+      if (result.conflicts && result.conflicts.length > 0) {
+        // Stop for conflict resolution
+        await saveRebaseState(fs, gitdir, state);
+        return {
+          success: false,
+          conflicts: result.conflicts,
+          message: `Conflicts in: ${result.conflicts.join(", ")}. Resolve and run 'git rebase --continue'`
+        };
+      }
+
+      // Move to next todo item
+      state.current++;
+      currentTodo.done = true;
+
+    } catch (error) {
+      // Save state and return error
+      await saveRebaseState(fs, gitdir, state);
+      throw error;
+    }
+  }
+
+  // Rebase completed successfully
+  // Update branch ref
+  const newHead = await _resolveRef({ cache, fs, gitdir, ref: "HEAD" });
+  if (newHead && state.head_name) {
+    await GitRefManager.writeRef({
+      fs: fs as any,
+      gitdir,
+      ref: state.head_name,
+      value: newHead
+    });
+  }
+
+  return {
+    success: true,
+    oid: newHead,
+    message: "Rebase completed successfully"
+  };
+}
+
+/**
+ * Execute a single todo item
+ */
+async function executeTodoItem({
+  cache,
+  dir,
+  fs,
+  gitdir,
+  item
+}: {
+  cache: Cache;
+  dir: string;
+  fs: FileSystem;
+  gitdir: string;
+  item: RebaseTodoItem;
+}): Promise<{ conflicts?: string[] }> {
+  switch (item.command) {
+    case "pick":
+      return await executePick(cache, dir, fs, gitdir, item);
+      
+    case "reword":
+      return await executeReword(cache, dir, fs, gitdir, item);
+      
+    case "edit":
+      return await executeEdit(cache, dir, fs, gitdir, item);
+      
+    case "squash":
+      return await executeSquash(cache, dir, fs, gitdir, item);
+      
+    case "fixup":
+      return await executeFixup(cache, dir, fs, gitdir, item);
+      
+    case "exec":
+      return await executeExec(item);
+      
+    case "break":
+      return await executeBreak();
+      
+    case "drop":
+      return {}; // Do nothing for drop
+      
+    default:
+      throw new Error(`Unsupported rebase command: ${item.command}`);
+  }
+}
+
+/**
+ * Execute pick command
+ */
+async function executePick(
+  cache: Cache,
+  dir: string,
+  fs: FileSystem,
+  gitdir: string,
+  item: RebaseTodoItem
+): Promise<{ conflicts?: string[] }> {
+  try {
+    await _cherryPick({
+      cache,
+      dir,
+      fs,
+      gitdir,
+      oid: item.commit,
+      noCommit: false
+    });
+    return {};
+  } catch (error) {
+    // Check for conflicts
+    return { conflicts: [item.commit] };
+  }
+}
+
+/**
+ * Execute other commands (simplified implementations)
+ */
+async function executeReword(cache: Cache, dir: string, fs: FileSystem, gitdir: string, item: RebaseTodoItem) {
+  // TODO: Implement reword - pause for message editing
+  return await executePick(cache, dir, fs, gitdir, item);
+}
+
+async function executeEdit(cache: Cache, dir: string, fs: FileSystem, gitdir: string, item: RebaseTodoItem) {
+  // TODO: Implement edit - pause for manual editing
+  return await executePick(cache, dir, fs, gitdir, item);
+}
+
+async function executeSquash(cache: Cache, dir: string, fs: FileSystem, gitdir: string, item: RebaseTodoItem) {
+  // TODO: Implement squash - combine with previous commit
+  return await executePick(cache, dir, fs, gitdir, item);
+}
+
+async function executeFixup(cache: Cache, dir: string, fs: FileSystem, gitdir: string, item: RebaseTodoItem) {
+  // TODO: Implement fixup - combine with previous commit, discard message
+  return await executePick(cache, dir, fs, gitdir, item);
+}
+
+async function executeExec(item: RebaseTodoItem) {
+  // TODO: Implement exec - run shell command
+  console.log(`Would execute: ${item.message}`);
+  return {};
+}
+
+async function executeBreak() {
+  // TODO: Implement break - pause rebase
+  return {};
+}
+
+/**
+ * Helper functions
+ */
+
+async function resolveCommit(fs: FileSystem, gitdir: string, cache: Cache, ref: string): Promise<string> {
+  const oid = await _resolveRef({ cache, fs, gitdir, ref });
+  if (!oid) {
+    throw new NotFoundError(ref);
+  }
+  return oid;
+}
+
+async function getCommitRange({
+  fs,
+  gitdir,
+  cache,
+  from,
+  to
+}: {
+  fs: FileSystem;
+  gitdir: string;
+  cache: Cache;
+  from: string;
+  to: string;
+}): Promise<Array<{ oid: string; message: string }>> {
+  // Simplified implementation - get commits between from and to
+  const commits: Array<{ oid: string; message: string }> = [];
+  
+  // TODO: Implement proper commit range walking
+  // This would walk from 'to' back to 'from' and collect commits
+  
+  return commits;
+}
+
+async function getCurrentBranchName(fs: FileSystem, gitdir: string): Promise<string> {
+  try {
+    const head = await fs.readFile(join(gitdir, "HEAD"));
+    const headText = new TextDecoder().decode(head);
+    
+    if (headText.startsWith("ref: ")) {
+      return headText.slice(5).trim();
+    }
+    
+    return "HEAD"; // Detached HEAD
+  } catch {
+    return "HEAD";
+  }
+}
+
+async function checkoutCommit({
+  cache,
+  dir,
+  fs,
+  gitdir,
+  oid
+}: {
+  cache: Cache;
+  dir: string;
+  fs: FileSystem;
+  gitdir: string;
+  oid: string;
+}): Promise<void> {
+  // TODO: Implement proper checkout
+  // This would checkout the specified commit
+}
+
+async function saveRebaseState(fs: FileSystem, gitdir: string, state: RebaseState): Promise<void> {
+  const rebaseDir = join(gitdir, REBASE_PATHS.DIR);
+  
+  // Create rebase directory
+  await fs.mkdir(rebaseDir, { recursive: true });
+  
+  // Save state files
+  await fs.writeFile(join(rebaseDir, REBASE_PATHS.ONTO), new TextEncoder().encode(state.onto));
+  await fs.writeFile(join(rebaseDir, REBASE_PATHS.ORIG_HEAD), new TextEncoder().encode(state.orig_head));
+  await fs.writeFile(join(rebaseDir, REBASE_PATHS.HEAD_NAME), new TextEncoder().encode(state.head_name));
+  
+  if (state.interactive) {
+    await fs.writeFile(join(rebaseDir, REBASE_PATHS.INTERACTIVE), new TextEncoder().encode(""));
+  }
+  
+  // Save todo list
+  const todoText = formatRebaseTodo(state.todo.slice(state.current));
+  await fs.writeFile(join(rebaseDir, REBASE_PATHS.TODO), new TextEncoder().encode(todoText));
+  
+  // Save done list
+  const doneItems = state.todo.slice(0, state.current);
+  const doneText = formatRebaseTodo(doneItems);
+  await fs.writeFile(join(rebaseDir, REBASE_PATHS.DONE), new TextEncoder().encode(doneText));
+}
+
+async function loadRebaseState(fs: FileSystem, gitdir: string): Promise<RebaseState | null> {
+  const rebaseDir = join(gitdir, REBASE_PATHS.DIR);
+  
+  try {
+    const onto = new TextDecoder().decode(await fs.readFile(join(rebaseDir, REBASE_PATHS.ONTO)));
+    const origHead = new TextDecoder().decode(await fs.readFile(join(rebaseDir, REBASE_PATHS.ORIG_HEAD)));
+    const headName = new TextDecoder().decode(await fs.readFile(join(rebaseDir, REBASE_PATHS.HEAD_NAME)));
+    
+    const interactive = await fs.exists?.(join(rebaseDir, REBASE_PATHS.INTERACTIVE)) ?? false;
+    
+    // Load todo and done lists
+    const todoText = new TextDecoder().decode(await fs.readFile(join(rebaseDir, REBASE_PATHS.TODO)));
+    const doneText = new TextDecoder().decode(await fs.readFile(join(rebaseDir, REBASE_PATHS.DONE)));
+    
+    const todoItems = parseRebaseTodo(todoText);
+    const doneItems = parseRebaseTodo(doneText);
+    
+    return {
+      onto,
+      orig_head: origHead,
+      head_name: headName,
+      todo: [...doneItems, ...todoItems],
+      current: doneItems.length,
+      interactive
+    };
+  } catch {
+    return null;
+  }
+}
+
+async function cleanupRebaseState(fs: FileSystem, gitdir: string): Promise<void> {
+  const rebaseDir = join(gitdir, REBASE_PATHS.DIR);
+  
+  try {
+    await fs.rmdir(rebaseDir, { recursive: true });
+  } catch {
+    // Ignore errors
+  }
+}
