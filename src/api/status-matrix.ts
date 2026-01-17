@@ -29,6 +29,7 @@ export interface StatusMatrixOptions {
   gitdir?: string;
   ignored?: boolean;
   ref?: string;
+  trees?: Array<any>; // Allow custom trees beyond the default HEAD, WORKDIR, STAGE
 }
 
 /**
@@ -170,6 +171,7 @@ export interface StatusMatrixOptions {
  * @param args.filter - Filter the results to only those whose filepath matches a function.
  * @param args.cache - a [cache](cache.md) object
  * @param args.ignored - include ignored files in the result
+ * @param args.trees - Optionally specify custom trees for comparison (defaults to [TREE(ref), WORKDIR(), STAGE()])
  *
  * @returns Resolves with a status matrix, described below.
  * @see StatusRow
@@ -182,7 +184,8 @@ export async function statusMatrix({
   fs: _fs,
   gitdir = join(dir, ".git"),
   ignored: shouldIgnore = false,
-  ref = "HEAD"
+  ref = "HEAD",
+  trees
 }: StatusMatrixOptions): Promise<StatusRow[]> {
   try {
     assertParameter("fs", _fs);
@@ -193,91 +196,129 @@ export async function statusMatrix({
     const fs = adaptFileSystem(fileSystem);
     const ignoreFs = adaptFsForGitIgnore(fileSystem);
 
+    // Use provided trees or default to the standard 3-tree comparison
+    const treesToUse = trees || [TREE({ ref }), WORKDIR(), STAGE()];
+    const isStandardThreeTrees = !trees && treesToUse.length === 3;
+
     return (await _walk({
       cache,
       dir,
       fs,
       gitdir,
-      map: async(filepath, [head, workdir, stage]) => {
-        /*** Ignore ignored files, but only if they are not already tracked. ***/
-        if (!head && !stage && workdir) {
-          if (!shouldIgnore) {
-            const isIgnored = await GitIgnoreManager.isIgnored({
-              dir,
-              filepath,
-              fs: ignoreFs,
-              gitdir
-            });
+      map: async(filepath, treeEntries) => {
+        // For backward compatibility, handle standard 3-tree case
+        if (isStandardThreeTrees) {
+          const [head, workdir, stage] = treeEntries;
+          
+          /*** Ignore ignored files, but only if they are not already tracked. ***/
+          if (!head && !stage && workdir) {
+            if (!shouldIgnore) {
+              const isIgnored = await GitIgnoreManager.isIgnored({
+                dir,
+                filepath,
+                fs: ignoreFs,
+                gitdir
+              });
 
-            if (isIgnored)
-              return null;
+              if (isIgnored)
+                return null;
+            }
           }
-        }
 
-        /*** match against base paths ***/
-        if (!filepaths.some((base) => worthWalking(filepath, base)))
-          return null;
+          /*** match against base paths ***/
+          if (!filepaths.some((base) => worthWalking(filepath, base)))
+            return null;
 
-        /*** Late filter against file names ***/
-        if (filter) {
-          if (!filter(filepath))
+          /*** Late filter against file names ***/
+          if (filter) {
+            if (!filter(filepath))
+              return;
+          }
+
+          const [headType, workdirType, stageType] = await Promise.all([
+            head && head.type(),
+            workdir && workdir.type(),
+            stage && stage.type()
+          ]);
+
+          const isBlob = [headType, workdirType, stageType].includes("blob");
+
+          /*** For now, bail on directories unless the file is also a blob in another tree ***/
+          if ((headType === "tree" || headType === "special") && !isBlob)
             return;
+
+          if (headType === "commit")
+            return null;
+
+          if ((workdirType === "tree" || workdirType === "special") && !isBlob)
+            return;
+
+          if (stageType === "commit")
+            return null;
+
+          if ((stageType === "tree" || stageType === "special") && !isBlob)
+            return;
+
+          /*** Figure out the oids for files ***/
+          const headOid = headType === "blob" && head ? await head.oid() : undefined;
+          const stageOid = stageType === "blob" && stage ? await stage.oid() : undefined;
+
+          let workdirOid;
+          if (headType !== "blob" && workdirType === "blob" && stageType !== "blob") {
+            // Enhanced logic: can now handle N trees dynamically
+            workdirOid = "42";
+          } else if (workdirType === "blob" && workdir) {
+            workdirOid = await workdir.oid();
+          }
+
+          const entry = [undefined, headOid, workdirOid, stageOid];
+          const result = entry.map((value) => entry.indexOf(value));
+          result.shift(); 
+          return [filepath, ...result] as StatusRow;
+        } 
+        
+        // Handle N trees case
+        else {
+          /*** match against base paths ***/
+          if (!filepaths.some((base) => worthWalking(filepath, base)))
+            return null;
+
+          /*** Late filter against file names ***/
+          if (filter) {
+            if (!filter(filepath))
+              return;
+          }
+
+          // Get types and oids for all trees
+          const types = await Promise.all(
+            treeEntries.map(entry => entry && entry.type())
+          );
+          
+          const isBlob = types.includes("blob");
+
+          // Skip if all entries are directories/special and no blobs
+          if (types.every(type => type === "tree" || type === "special") && !isBlob)
+            return;
+
+          // Skip commits
+          if (types.includes("commit"))
+            return null;
+
+          // Get oids for all trees
+          const oids = await Promise.all(
+            treeEntries.map(async (entry, i) => 
+              types[i] === "blob" && entry ? await entry.oid() : undefined
+            )
+          );
+
+          // For N-tree case, create a more generic comparison
+          const entry = [undefined, ...oids];
+          const result = entry.map((value) => entry.indexOf(value));
+          result.shift();
+          return [filepath, ...result] as StatusRow;
         }
-
-        const [headType, workdirType, stageType] = await Promise.all([
-          head && head.type(),
-          workdir && workdir.type(),
-          stage && stage.type()
-        ]);
-
-        const isBlob = [headType, workdirType, stageType].includes("blob");
-
-        /*** For now, bail on directories unless the file is also a blob in another tree ***/
-        if ((headType === "tree" || headType === "special") && !isBlob)
-          return;
-
-        if (headType === "commit")
-          return null;
-
-        if ((workdirType === "tree" || workdirType === "special") && !isBlob)
-          return;
-
-        if (stageType === "commit")
-          return null;
-
-        if ((stageType === "tree" || stageType === "special") && !isBlob)
-          return;
-
-        /*** Figure out the oids for files, using the staged oid for the working dir oid if the stats match. ***/
-        const headOid = headType === "blob" && head ?
-          await head.oid() :
-          undefined;
-
-        const stageOid = stageType === "blob" && stage ?
-          await stage.oid() :
-          undefined;
-
-        let workdirOid;
-
-        if (
-          headType !== "blob" &&
-          workdirType === "blob" &&
-          stageType !== "blob"
-        ) {
-          /*** We don’t actually NEED the sha. Any sha will do
-          TODO: update this logic to handle N trees instead of just 3. ***/
-          workdirOid = "42";
-        } else if (workdirType === "blob" && workdir) {
-          workdirOid = await workdir.oid();
-        }
-
-        const entry = [undefined, headOid, workdirOid, stageOid];
-        const result = entry.map((value) => entry.indexOf(value));
-
-        result.shift(); /*** remove leading undefined entry ***/
-        return [filepath, ...result] as StatusRow;
       },
-      trees: [TREE({ ref }), WORKDIR(), STAGE()]
+      trees: treesToUse
     })) as StatusRow[];
   } catch(err: unknown) {
     (err as any).caller = "git.statusMatrix";

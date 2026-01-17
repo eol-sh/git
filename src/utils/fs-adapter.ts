@@ -147,17 +147,42 @@ export function adaptFsInterface(fs: FsInterface): any {
         return null;
       }
     },
-    readdirDeep: async(dirpath: string) => {
-      /*** Simple implementation - in a full implementation you’d want recursion ***/
-      const entries = await fs.readdir(dirpath);
-
-      if (Array.isArray(entries)) {
-        return entries.map(entry => typeof entry === "string" ?
-            entry :
-            (entry as Deno.DirEntry).name);
+    readdirDeep: async(dirpath: string): Promise<string[]> => {
+      const allFiles: string[] = [];
+      
+      async function readRecursive(currentPath: string, basePath: string = ""): Promise<void> {
+        try {
+          const entries = await fs.readdir(currentPath);
+          const entriesArray = Array.isArray(entries) ? entries : [entries];
+          
+          for (const entry of entriesArray) {
+            const entryName = typeof entry === "string" ? entry : (entry as Deno.DirEntry).name;
+            const fullPath = currentPath === dirpath ? entryName : `${basePath}/${entryName}`;
+            const absolutePath = `${currentPath}/${entryName}`;
+            
+            try {
+              const stat = await fs.lstat(absolutePath);
+              
+              if (stat.isDirectory()) {
+                // Recursively process subdirectory
+                await readRecursive(absolutePath, fullPath);
+              } else {
+                // Add file to results
+                allFiles.push(fullPath);
+              }
+            } catch {
+              // Skip entries that can't be stat'd (broken symlinks, permission issues)
+              continue;
+            }
+          }
+        } catch {
+          // Skip directories that can't be read
+          return;
+        }
       }
-
-      return entries as any;
+      
+      await readRecursive(dirpath);
+      return allFiles;
     },
     rm: (filepath: string) => fs.unlink(filepath),
     write: async(filepath: string, contents: string | Uint8Array, _options?: { encoding?: string } | string) => {

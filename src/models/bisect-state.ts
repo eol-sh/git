@@ -13,6 +13,7 @@ export interface BisectState {
     good: string;
     bad: string;
   };
+  paths?: string[];
 }
 
 export interface BisectLogEntry {
@@ -40,6 +41,7 @@ export interface BisectOptions {
     bad: string;
   };
   noCheckout?: boolean;
+  paths?: string[];
 }
 
 export interface BisectSearchResult {
@@ -69,7 +71,8 @@ export const BISECT_PATHS = {
   BISECT_LOG: "BISECT_LOG",
   BISECT_NAMES: "BISECT_NAMES",
   BISECT_TERMS: "BISECT_TERMS",
-  BISECT_RUN: "BISECT_RUN"
+  BISECT_RUN: "BISECT_RUN",
+  BISECT_PATHS: "BISECT_PATHS"
 } as const;
 
 /**

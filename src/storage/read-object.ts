@@ -34,7 +34,7 @@ interface ReadObjectResult {
 
 //// export
 
-/*** Simplified version - only supports loose objects for now ***/
+/*** Read Git objects from either loose object files or packfiles ***/
 export async function _readObject({
   cache,
   format = "content",

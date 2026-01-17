@@ -334,50 +334,134 @@ async function resetWorkingTree({
   gitdir: string;
   targetOid: string;
 }): Promise<void> {
-  // Use checkout to update working tree
-  // This is a simplified version - full implementation would handle more cases
+  // Get tree from target commit
+  const { object: commitObject } = await _readObject({ fs, gitdir, oid: targetOid });
+  const commitText = new TextDecoder().decode(commitObject);
+  const treeMatch = commitText.match(/^tree ([0-9a-f]{40})/m);
   
-  // Get current files in working directory
-  const walkDir = async (dirPath: string, basePath = ""): Promise<string[]> => {
-    const files: string[] = [];
-    const entries = await fs.readdir(dirPath);
-    
-    if (!entries) return files;
-    
-    for (const entry of entries) {
-      if (entry === ".git") continue;
-      
-      const fullPath = join(dirPath, entry);
-      const relativePath = basePath ? join(basePath, entry) : entry;
-      const stat = await fs.lstat(fullPath);
-      
-      if (stat?.isDirectory()) {
-        const subFiles = await walkDir(fullPath, relativePath);
-        files.push(...subFiles);
-      } else {
-        files.push(relativePath);
-      }
-    }
-    
-    return files;
-  };
-  
-  const currentFiles = await walkDir(dir);
-  
-  // Remove all current files
-  for (const file of currentFiles) {
-    const fullPath = join(dir, file);
-    await fs.unlink(fullPath).catch(() => {});
+  if (!treeMatch) {
+    throw new Error(`Invalid commit object: ${targetOid}`);
   }
   
-  // Checkout files from target commit
-  await _checkout({
-    cache,
-    dir,
-    fs,
-    gitdir,
-    ref: targetOid,
-    force: true,
-    noCheckout: false
-  });
+  const targetTreeOid = treeMatch[1];
+  const targetTree = await _readTree({ fs, gitdir, oid: targetTreeOid });
+  
+  // Get current files in working directory (excluding .git)
+  const currentFiles = await walkWorkingDir(fs, dir);
+  
+  // Get target files from commit tree
+  const targetFiles = await getFilesFromTree(targetTree, fs, gitdir);
+  
+  // Remove files that don't exist in target
+  for (const currentFile of currentFiles) {
+    if (!targetFiles.has(currentFile)) {
+      const fullPath = join(dir, currentFile);
+      await fs.rm(fullPath).catch(() => {});
+    }
+  }
+  
+  // Add/update files from target tree
+  for (const [filepath, { oid, mode }] of targetFiles) {
+    const fullPath = join(dir, filepath);
+    
+    // Ensure directory exists
+    const dirPath = fullPath.substring(0, fullPath.lastIndexOf('/'));
+    if (dirPath && dirPath !== dir) {
+      await fs.mkdir(dirPath, { recursive: true }).catch(() => {});
+    }
+    
+    // Get file content from object store
+    const { object } = await _readObject({ fs, gitdir, oid });
+    
+    // Write file with correct permissions
+    await fs.write(fullPath, object);
+    
+    // Set file mode if supported
+    try {
+      await fs.chmod(fullPath, parseInt(mode, 8));
+    } catch {
+      // Chmod not supported on this platform
+    }
+  }
+  
+  // Remove empty directories
+  await removeEmptyDirectories(fs, dir);
+}
+
+/**
+ * Walk working directory to get all files (excluding .git)
+ */
+async function walkWorkingDir(fs: FileSystem, dirPath: string, basePath = ""): Promise<string[]> {
+  const files: string[] = [];
+  const entries = await fs.readdir(dirPath).catch(() => []);
+  
+  for (const entry of entries) {
+    if (entry === ".git") continue;
+    
+    const fullPath = join(dirPath, entry);
+    const relativePath = basePath ? join(basePath, entry) : entry;
+    const stat = await fs.lstat(fullPath).catch(() => null);
+    
+    if (stat?.isDirectory()) {
+      const subFiles = await walkWorkingDir(fs, fullPath, relativePath);
+      files.push(...subFiles);
+    } else if (stat?.isFile()) {
+      files.push(relativePath);
+    }
+  }
+  
+  return files;
+}
+
+/**
+ * Get all files from a tree recursively
+ */
+async function getFilesFromTree(
+  tree: GitTree, 
+  fs: FileSystem, 
+  gitdir: string,
+  prefix = ""
+): Promise<Map<string, { oid: string; mode: string }>> {
+  const files = new Map<string, { oid: string; mode: string }>();
+  
+  for (const entry of tree.entries()) {
+    const filepath = prefix ? join(prefix, entry.path) : entry.path;
+    
+    if (entry.type === "tree") {
+      // Recursively process subtree
+      const subtree = await _readTree({ fs, gitdir, oid: entry.oid });
+      const subFiles = await getFilesFromTree(subtree, fs, gitdir, filepath);
+      for (const [path, info] of subFiles) {
+        files.set(path, info);
+      }
+    } else if (entry.type === "blob") {
+      files.set(filepath, { oid: entry.oid, mode: entry.mode });
+    }
+  }
+  
+  return files;
+}
+
+/**
+ * Remove empty directories recursively
+ */
+async function removeEmptyDirectories(fs: FileSystem, dirPath: string): Promise<void> {
+  const entries = await fs.readdir(dirPath).catch(() => []);
+  
+  for (const entry of entries) {
+    if (entry === ".git") continue;
+    
+    const fullPath = join(dirPath, entry);
+    const stat = await fs.lstat(fullPath).catch(() => null);
+    
+    if (stat?.isDirectory()) {
+      await removeEmptyDirectories(fs, fullPath);
+      
+      // Try to remove directory if it's empty
+      const subEntries = await fs.readdir(fullPath).catch(() => []);
+      if (subEntries.length === 0) {
+        await fs.rmdir(fullPath).catch(() => {});
+      }
+    }
+  }
 }

@@ -36,9 +36,16 @@ export async function readObjectPacked({
   gitdir,
   oid
 }: ReadObjectPackedOptions): Promise<ReadObjectPackedResult | null> {
-  /*** Check to see if it’s in a packfile.
+  /*** Check to see if it's in a packfile.
   Iterate through all the .idx files ***/
-  const list = await fs.readdir(join(gitdir, "objects/pack"));
+  let list: string[] | AsyncIterable<{ name: string }>;
+  
+  try {
+    list = await fs.readdir(join(gitdir, "objects/pack"));
+  } catch {
+    // No pack directory or not accessible
+    return null;
+  }
 
   /*** Handle both Deno and Node.js readdir return types ***/
   const fileList = Array.isArray(list) ?
@@ -73,7 +80,11 @@ export async function readObjectPacked({
       /*** Get the resolved git object from the packfile ***/
       if (!p.pack) {
         const packFile = indexFile.replace(/idx$/, "pack");
-        p.pack = fs.readFile(packFile);
+        try {
+          p.pack = await fs.readFile(packFile);
+        } catch (error) {
+          throw new InternalError(`Failed to read packfile ${packFile}: ${error}`);
+        }
       }
 
       const result = await p.read({ oid });

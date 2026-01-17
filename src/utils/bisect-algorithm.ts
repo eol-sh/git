@@ -216,7 +216,8 @@ export function createInitialBisectState(
   bad: string,
   good: string[],
   start: string,
-  terms?: { good: string; bad: string }
+  terms?: { good: string; bad: string },
+  paths?: string[]
 ): BisectState {
   return {
     bad,
@@ -224,7 +225,8 @@ export function createInitialBisectState(
     start,
     names: {},
     log: [],
-    terms
+    terms,
+    paths: paths && paths.length > 0 ? paths : undefined
   };
 }
 

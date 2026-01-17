@@ -7,6 +7,7 @@ import { _readObject } from "../storage/read-object.ts";
 import { _readTree } from "../commands/read-tree.ts";
 import { _resolveRef } from "../commands/resolve-ref.ts";
 import { _writeObject } from "../storage/write-object.ts";
+import { _writeTree } from "../commands/write-tree.ts";
 import { FileSystem } from "../models/file-system.ts";
 import { GitIndexManager } from "../managers/git-index.ts";
 import { GitRefManager } from "../managers/git-ref.ts";
@@ -16,6 +17,7 @@ import { NotFoundError } from "../errors/not-found.ts";
 import { ObjectTypeError } from "../errors/object-type.ts";
 import { resolveFilepath } from "../utils/resolve-filepath.ts";
 import { normalizeStats } from "../utils/normalize-stats.ts";
+import { hashBlob } from "../api/hash-blob.ts";
 
 import type { Cache } from "../types.ts";
 
@@ -225,7 +227,7 @@ export async function _cherryPick({
       fs,
       gitdir,
       message: commitMessage,
-      tree: await writeTreeFromIndex({ cache, fs, gitdir }),
+      tree: await writeTreeFromIndex({ cache, fs, gitdir, dir }),
       parent: [headOid],
       author: commitAuthor,
       committer: commitCommitter
@@ -351,17 +353,44 @@ async function getTreeFiles({
   gitdir: string;
   tree: string;
 }): Promise<Array<{ path: string; oid: string; mode: string }>> {
+  return await flattenTreeRecursive({ fs, gitdir, tree, prefix: "" });
+}
+
+/**
+ * Recursively flatten a tree including all nested subtrees
+ */
+async function flattenTreeRecursive({
+  fs,
+  gitdir,
+  tree,
+  prefix
+}: {
+  fs: FileSystem;
+  gitdir: string;
+  tree: string;
+  prefix: string;
+}): Promise<Array<{ path: string; oid: string; mode: string }>> {
   const treeObj = await _readTree({ fs: fs as any, gitdir, oid: tree });
   const files: Array<{ path: string; oid: string; mode: string }> = [];
   
-  // Simple implementation - would need recursion for nested trees
   for (const entry of treeObj.entries()) {
+    const fullPath = prefix ? `${prefix}/${entry.path}` : entry.path;
+    
     if (entry.type === "blob") {
       files.push({
-        path: entry.path,
+        path: fullPath,
         oid: entry.oid,
         mode: entry.mode
       });
+    } else if (entry.type === "tree") {
+      // Recursively process subtree
+      const subFiles = await flattenTreeRecursive({
+        fs,
+        gitdir,
+        tree: entry.oid,
+        prefix: fullPath
+      });
+      files.push(...subFiles);
     }
   }
   
@@ -418,14 +447,112 @@ async function updateIndex(
 async function writeTreeFromIndex({
   cache,
   fs,
-  gitdir
+  gitdir,
+  dir
 }: {
   cache: Cache;
   fs: FileSystem;
   gitdir: string;
+  dir: string;
 }): Promise<string> {
-  // Simplified - would need full tree writing logic
-  return "placeholder-tree-oid";
+  // Get the current working tree files
+  const entries = [];
+  
+  // For simplicity, we'll scan the working directory and create tree entries
+  // In a full implementation, this would read from the actual Git index
+  await scanDirectory(fs, dir, "", entries);
+  
+  // Filter out .git directory
+  const filteredEntries = entries.filter(entry => !entry.path.startsWith(".git"));
+  
+  // Convert to tree entries format
+  const treeEntries = [];
+  
+  for (const entry of filteredEntries) {
+    try {
+      const fullPath = join(dir, entry.path);
+      const stat = await fs.lstat(fullPath);
+      
+      if (stat && stat.isFile()) {
+        // Read file content and get hash
+        const content = await fs.read(fullPath) as Uint8Array;
+        const oid = await hashBlob({
+          fs: { 
+            readdir: fs.readdir.bind(fs),
+            lstat: fs.lstat.bind(fs),
+            readFile: () => Promise.resolve(content)
+          },
+          gitdir,
+          object: content
+        });
+        
+        treeEntries.push({
+          mode: "100644", // Regular file mode
+          path: entry.path,
+          oid,
+          type: "blob"
+        });
+      }
+    } catch (error) {
+      // Skip files that can't be read
+      continue;
+    }
+  }
+  
+  // Create tree object
+  const treeObject = {
+    entries: treeEntries
+  };
+  
+  // Write the tree
+  return await _writeTree({
+    fs: { 
+      readdir: fs.readdir.bind(fs),
+      lstat: fs.lstat.bind(fs),
+      writeFile: fs.write.bind(fs)
+    },
+    gitdir,
+    tree: treeObject
+  });
+}
+
+/**
+ * Recursively scan directory for files
+ */
+async function scanDirectory(
+  fs: FileSystem,
+  baseDir: string,
+  relativePath: string,
+  entries: Array<{ path: string }>
+): Promise<void> {
+  const fullPath = relativePath ? join(baseDir, relativePath) : baseDir;
+  
+  try {
+    const dirEntries = await fs.readdir(fullPath);
+    
+    for (const entryName of dirEntries) {
+      // Skip .git directory
+      if (entryName === ".git") {
+        continue;
+      }
+      
+      const entryRelativePath = relativePath ? join(relativePath, entryName) : entryName;
+      const entryFullPath = join(fullPath, entryName);
+      
+      try {
+        const stat = await fs.lstat(entryFullPath);
+        if (stat && stat.isFile()) {
+          entries.push({ path: entryRelativePath });
+        } else if (stat && stat.isDirectory()) {
+          await scanDirectory(fs, baseDir, entryRelativePath, entries);
+        }
+      } catch {
+        // Skip inaccessible entries
+      }
+    }
+  } catch {
+    // Skip inaccessible directories
+  }
 }
 
 /**

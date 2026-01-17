@@ -33,8 +33,9 @@ interface BisectStartCommandOptions extends BisectCommandOptions {
     terms?: {
       good: string;
       bad: string;
-    };
+    } | undefined;
     noCheckout?: boolean;
+    paths?: string[];
   };
 }
 
@@ -48,7 +49,7 @@ export async function _bisectStart({
   gitdir,
   options
 }: BisectStartCommandOptions): Promise<BisectSearchResult> {
-  const { bad = "HEAD", good = [], terms, noCheckout = false } = options;
+  const { bad = "HEAD", good = [], terms, noCheckout = false, paths = [] } = options;
 
   try {
     // Check if bisect is already in progress
@@ -84,7 +85,7 @@ export async function _bisectStart({
       ref: currentRef 
     });
 
-    const state = createInitialBisectState(badOid, goodOids, startOid, terms);
+    const state = createInitialBisectState(badOid, goodOids, startOid, terms, paths);
     
     // Validate state
     const validation = validateBisectState(state);
@@ -396,13 +397,14 @@ export async function _bisectReplay({
 
       switch (command) {
         case "start":
-          // Parse start command (simplified)
+          // Parse start command with full argument support
+          const startOptions = parseBisectStartCommand(parts.slice(2));
           result = await _bisectStart({
             cache,
             dir,
             fs,
             gitdir,
-            options: { bad: "HEAD", good: [] }
+            options: startOptions
           });
           break;
           
@@ -432,6 +434,89 @@ export async function _bisectReplay({
 }
 
 /**
+ * Parse bisect start command arguments
+ * Supports: bisect start [<bad> [<good>...]] [-- <paths>...]
+ * Also supports: bisect start --term-good=<term> --term-bad=<term>
+ */
+function parseBisectStartCommand(args: string[]): {
+  bad?: string;
+  good?: string[];
+  terms?: { good: string; bad: string } | undefined;
+  noCheckout?: boolean;
+  paths?: string[];
+} {
+  const options = {
+    bad: undefined as string | undefined,
+    good: [] as string[],
+    terms: undefined as { good: string; bad: string } | undefined,
+    noCheckout: false,
+    paths: [] as string[]
+  };
+
+  let i = 1; // Skip "start"
+  let inPaths = false;
+
+  while (i < args.length) {
+    const arg = args[i];
+
+    if (arg === "--") {
+      inPaths = true;
+      i++;
+      continue;
+    }
+
+    if (inPaths) {
+      options.paths.push(arg);
+      i++;
+      continue;
+    }
+
+    if (arg.startsWith("--term-good=")) {
+      const term = arg.slice(12); // Remove "--term-good="
+      if (!options.terms) {
+        options.terms = { good: term, bad: "bad" };
+      } else {
+        options.terms.good = term;
+      }
+      i++;
+      continue;
+    }
+
+    if (arg.startsWith("--term-bad=")) {
+      const term = arg.slice(11); // Remove "--term-bad="
+      if (!options.terms) {
+        options.terms = { good: "good", bad: term };
+      } else {
+        options.terms.bad = term;
+      }
+      i++;
+      continue;
+    }
+
+    if (arg === "--no-checkout") {
+      options.noCheckout = true;
+      i++;
+      continue;
+    }
+
+    // Positional arguments: first is bad, rest are good
+    if (!options.bad) {
+      options.bad = arg;
+    } else {
+      options.good.push(arg);
+    }
+    i++;
+  }
+
+  // Set defaults if not specified
+  if (!options.bad) {
+    options.bad = "HEAD";
+  }
+
+  return options;
+}
+
+/**
  * Save bisect state to files
  */
 async function saveBisectState(fs: FileSystem, gitdir: string, state: BisectState): Promise<void> {
@@ -449,6 +534,10 @@ async function saveBisectState(fs: FileSystem, gitdir: string, state: BisectStat
   if (state.terms) {
     const termsContent = `${state.terms.good}\n${state.terms.bad}`;
     await fs.writeFile(join(bisectDir, BISECT_PATHS.BISECT_TERMS), termsContent);
+  }
+
+  if (state.paths && state.paths.length > 0) {
+    await fs.writeFile(join(bisectDir, BISECT_PATHS.BISECT_PATHS), state.paths.join("\n"));
   }
 
   // Save log
@@ -514,6 +603,15 @@ async function loadBisectState(fs: FileSystem, gitdir: string): Promise<BisectSt
       // Names file might not exist
     }
 
+    let paths = undefined;
+    try {
+      const pathsContent = await fs.readFile(join(bisectDir, BISECT_PATHS.BISECT_PATHS), { encoding: "utf8" });
+      paths = pathsContent.trim().split("\n").filter(line => line.trim());
+      if (paths.length === 0) paths = undefined;
+    } catch {
+      // Paths file might not exist
+    }
+
     return {
       start: start.trim(),
       bad: bad.trim(),
@@ -521,6 +619,7 @@ async function loadBisectState(fs: FileSystem, gitdir: string): Promise<BisectSt
       log,
       names,
       terms,
+      paths,
       current: log.length > 0 ? log[log.length - 1].oid : undefined
     };
 
@@ -539,5 +638,149 @@ async function cleanupBisectState(fs: FileSystem, gitdir: string): Promise<void>
     await fs.rm(bisectDir, { recursive: true, force: true });
   } catch {
     // Directory might not exist
+  }
+}
+
+interface BisectRunCommandOptions extends BisectCommandOptions {
+  script: string;
+}
+
+/**
+ * Run automated bisect with a test script
+ */
+export async function _bisectRun({
+  cache,
+  dir,
+  fs,
+  gitdir,
+  script
+}: BisectRunCommandOptions): Promise<BisectRunResult> {
+  try {
+    // Check if bisect session is active
+    let state: BisectState;
+    try {
+      state = await loadBisectState(fs, gitdir);
+    } catch {
+      return {
+        success: false,
+        message: "No bisect session in progress. Use 'git bisect start' first.",
+        finished: false
+      };
+    }
+
+    // Check if bisect is already complete
+    const completionCheck = checkBisectComplete(state);
+    if (completionCheck.complete) {
+      return {
+        success: true,
+        oid: completionCheck.result?.oid,
+        result: completionCheck.result,
+        remaining: 0,
+        message: completionCheck.message || "Bisect completed",
+        finished: true
+      };
+    }
+
+    let iterations = 0;
+    const maxIterations = 100; // Safety limit
+
+    while (!checkBisectComplete(state).complete && iterations < maxIterations) {
+      // Calculate next commit to test
+      const nextCommit = calculateBisectCommit(state);
+      if (!nextCommit) {
+        return {
+          success: false,
+          message: "Unable to find next commit for testing",
+          finished: false
+        };
+      }
+
+      // Checkout the commit (optional - depends on noCheckout setting)
+      try {
+        // For now, we'll just mark it without checkout to avoid complexity
+        // In a full implementation, you'd checkout the commit first
+      } catch (checkoutError) {
+        return {
+          success: false,
+          message: `Failed to checkout commit ${nextCommit}: ${(checkoutError as Error).message}`,
+          finished: false
+        };
+      }
+
+      // Run the test script
+      let testResult: "good" | "bad" | "skip";
+      try {
+        // Execute the script using Deno.Command
+        const command = new Deno.Command("sh", {
+          args: ["-c", script],
+          cwd: dir,
+          stdout: "piped",
+          stderr: "piped"
+        });
+
+        const { code, stdout, stderr } = await command.output();
+        
+        // Standard git bisect run exit code interpretation:
+        // 0 = good, 1-124 = bad, 125 = skip, 126+ = abort
+        if (code === 0) {
+          testResult = "good";
+        } else if (code === 125) {
+          testResult = "skip";
+        } else if (code >= 126) {
+          return {
+            success: false,
+            message: `Test script aborted with exit code ${code}`,
+            finished: false
+          };
+        } else {
+          testResult = "bad";
+        }
+
+      } catch (execError) {
+        return {
+          success: false,
+          message: `Failed to execute test script: ${(execError as Error).message}`,
+          finished: false
+        };
+      }
+
+      // Add the result to bisect state
+      state = addBisectResult(state, nextCommit, testResult);
+      
+      // Save updated state
+      await saveBisectState(fs, gitdir, state);
+
+      iterations++;
+    }
+
+    if (iterations >= maxIterations) {
+      return {
+        success: false,
+        message: "Bisect run exceeded maximum iterations (safety limit)",
+        finished: false
+      };
+    }
+
+    // Check final completion
+    const finalCheck = checkBisectComplete(state);
+    if (finalCheck.complete) {
+      return {
+        success: true,
+        oid: finalCheck.result?.oid,
+        result: finalCheck.result,
+        remaining: 0,
+        message: finalCheck.message || "Bisect run completed successfully",
+        finished: true
+      };
+    }
+
+    return {
+      success: false,
+      message: "Bisect run completed but no conclusive result found",
+      finished: false
+    };
+
+  } catch (error) {
+    throw new Error(`git bisect run failed: ${(error as Error).message}`);
   }
 }

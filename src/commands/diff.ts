@@ -235,16 +235,113 @@ async function getWorkingTree({
   gitdir: string;
   filepath?: string | string[];
 }): Promise<GitTree> {
-  // For now, we'll read from the index as a proxy for working tree
-  // In a full implementation, we'd scan the actual file system
   const entries: TreeEntry[] = [];
   
-  // This is a simplified version - full implementation would:
-  // 1. Read actual files from disk
-  // 2. Compare with index
-  // 3. Handle untracked files
+  try {
+    // If specific filepath(s) provided, only check those
+    if (filepath) {
+      const paths = Array.isArray(filepath) ? filepath : [filepath];
+      
+      for (const path of paths) {
+        const fullPath = join(dir, path);
+        try {
+          const stat = await fs.lstat(fullPath);
+          if (stat && stat.isFile()) {
+            const content = await fs.read(fullPath) as Uint8Array;
+            const oid = await calculateBlobHash(content);
+            
+            entries.push({
+              mode: "100644",
+              path: path,
+              oid: oid,
+              type: "blob"
+            });
+          }
+        } catch {
+          // File doesn't exist or isn't accessible - skip
+        }
+      }
+    } else {
+      // Scan entire working tree
+      await scanWorkingDirectory(fs, dir, "", entries, gitdir);
+    }
+    
+  } catch (error) {
+    // If we can't scan working tree, return empty tree
+  }
   
   return new GitTree(entries);
+}
+
+/**
+ * Recursively scan working directory for files
+ */
+async function scanWorkingDirectory(
+  fs: FileSystem,
+  baseDir: string,
+  relativePath: string,
+  entries: TreeEntry[],
+  gitdir: string
+): Promise<void> {
+  const fullPath = relativePath ? join(baseDir, relativePath) : baseDir;
+  
+  try {
+    const dirEntries = await fs.readdir(fullPath);
+    
+    for (const entryName of dirEntries) {
+      // Skip .git directory
+      if (entryName === ".git") {
+        continue;
+      }
+      
+      const entryRelativePath = relativePath ? join(relativePath, entryName) : entryName;
+      const entryFullPath = join(fullPath, entryName);
+      
+      try {
+        const stat = await fs.lstat(entryFullPath);
+        if (stat && stat.isFile()) {
+          // Read file content and calculate hash
+          const content = await fs.read(entryFullPath) as Uint8Array;
+          const oid = await calculateBlobHash(content);
+          
+          entries.push({
+            mode: "100644",
+            path: entryRelativePath,
+            oid: oid,
+            type: "blob"
+          });
+        } else if (stat && stat.isDirectory()) {
+          // Recursively scan subdirectory
+          await scanWorkingDirectory(fs, baseDir, entryRelativePath, entries, gitdir);
+        }
+      } catch {
+        // Skip inaccessible entries
+      }
+    }
+  } catch {
+    // Skip inaccessible directories
+  }
+}
+
+/**
+ * Calculate blob hash for content
+ */
+async function calculateBlobHash(content: Uint8Array): Promise<string> {
+  // Git blob format: "blob <size>\0<content>"
+  const header = `blob ${content.length}\0`;
+  const headerBytes = new TextEncoder().encode(header);
+  const fullContent = new Uint8Array(headerBytes.length + content.length);
+  fullContent.set(headerBytes, 0);
+  fullContent.set(content, headerBytes.length);
+  
+  // Calculate SHA-1 hash
+  const hashBuffer = await crypto.subtle.digest("SHA-1", fullContent);
+  const hashArray = new Uint8Array(hashBuffer);
+  
+  // Convert to hex string
+  return Array.from(hashArray)
+    .map(b => b.toString(16).padStart(2, '0'))
+    .join('');
 }
 
 /**

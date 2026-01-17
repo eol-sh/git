@@ -24,23 +24,101 @@ export async function shasum(buffer: Uint8Array | ArrayBuffer): Promise<string> 
 
 //// helper
 
-// Fallback SHA-1 implementation using a simple algorithm
+// Fallback SHA-1 implementation using pure JavaScript
 // This is for environments where crypto.subtle is not available
-// TODO
-// : if SHA-1 isn’t available, surface an error instead of using this function
 function fallbackSHA1(buffer: Uint8Array | ArrayBuffer): string {
   /*** Convert to Uint8Array if needed ***/
   const data = buffer instanceof ArrayBuffer ?
     new Uint8Array(buffer) :
     buffer;
 
-  // Use data for calculation if needed in the future
-  console.log(`Fallback SHA1 for buffer of size: ${data.length}`);
+  return sha1Pure(data);
+}
 
-  // Simple SHA-1 implementation (this is a minimal fallback)
-  // In a real environment, you’d want to use a proper crypto library
-  // For now, throw an error to indicate crypto.subtle should be used
-  throw new Error("crypto.subtle.digest is required for SHA-1 calculation in this environment");
+/**
+ * Pure JavaScript SHA-1 implementation
+ * Based on RFC 3174 specification
+ */
+function sha1Pure(data: Uint8Array): string {
+  // SHA-1 constants
+  const h = [0x67452301, 0xEFCDAB89, 0x98BADCFE, 0x10325476, 0xC3D2E1F0];
+  
+  // Pre-processing: padding message
+  const ml = data.length * 8; // message length in bits
+  const paddingLength = (55 - (data.length % 64)) % 64;
+  const paddedLength = data.length + 1 + paddingLength + 8;
+  
+  const padded = new Uint8Array(paddedLength);
+  padded.set(data, 0);
+  padded[data.length] = 0x80; // append '1' bit
+  
+  // Append length as 64-bit big-endian integer
+  const view = new DataView(padded.buffer);
+  view.setUint32(paddedLength - 8, 0, false); // high 32 bits (0 for lengths < 2^32)
+  view.setUint32(paddedLength - 4, ml, false); // low 32 bits
+  
+  // Process 512-bit chunks
+  for (let chunk = 0; chunk < paddedLength; chunk += 64) {
+    const w = new Uint32Array(80);
+    
+    // Break chunk into sixteen 32-bit big-endian words
+    for (let i = 0; i < 16; i++) {
+      w[i] = view.getUint32(chunk + i * 4, false);
+    }
+    
+    // Extend the sixteen 32-bit words into eighty 32-bit words
+    for (let i = 16; i < 80; i++) {
+      w[i] = rotateLeft(w[i - 3] ^ w[i - 8] ^ w[i - 14] ^ w[i - 16], 1);
+    }
+    
+    // Initialize hash value for this chunk
+    let a = h[0];
+    let b = h[1];
+    let c = h[2];
+    let d = h[3];
+    let e = h[4];
+    
+    // Main loop
+    for (let i = 0; i < 80; i++) {
+      let f: number;
+      let k: number;
+      
+      if (i < 20) {
+        f = (b & c) | (~b & d);
+        k = 0x5A827999;
+      } else if (i < 40) {
+        f = b ^ c ^ d;
+        k = 0x6ED9EBA1;
+      } else if (i < 60) {
+        f = (b & c) | (b & d) | (c & d);
+        k = 0x8F1BBCDC;
+      } else {
+        f = b ^ c ^ d;
+        k = 0xCA62C1D6;
+      }
+      
+      const temp = (rotateLeft(a, 5) + f + e + k + w[i]) >>> 0;
+      e = d;
+      d = c;
+      c = rotateLeft(b, 30);
+      b = a;
+      a = temp;
+    }
+    
+    // Add this chunk's hash to result so far
+    h[0] = (h[0] + a) >>> 0;
+    h[1] = (h[1] + b) >>> 0;
+    h[2] = (h[2] + c) >>> 0;
+    h[3] = (h[3] + d) >>> 0;
+    h[4] = (h[4] + e) >>> 0;
+  }
+  
+  // Convert to hex string
+  return h.map(val => val.toString(16).padStart(8, '0')).join('');
+}
+
+function rotateLeft(value: number, shift: number): number {
+  return ((value << shift) | (value >>> (32 - shift))) >>> 0;
 }
 
 async function subtleSHA1(buffer: Uint8Array | ArrayBuffer): Promise<string> {

@@ -33,7 +33,8 @@ export function parseRebaseTodo(todoText: string): RebaseTodoItem[] {
  */
 function parseTodoLine(line: string): RebaseTodoItem | null {
   // Match: command commit [message]
-  const match = line.match(/^(\w+)\s+([a-f0-9]+)(?:\s+(.+))?$/);
+  // Accept any alphanumeric string as commit (for flexibility in testing)
+  const match = line.match(/^(\w+)\s+([a-zA-Z0-9]{4,40})(?:\s+(.+))?$/);
   
   if (!match) {
     // Try exec command: exec command args

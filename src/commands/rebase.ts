@@ -4,10 +4,14 @@
  */
 
 import { _cherryPick } from "../commands/cherry-pick.ts";
+import { _checkout } from "../commands/checkout.ts";
 import { _readObject } from "../storage/read-object.ts";
 import { _resolveRef } from "../commands/resolve-ref.ts";
 import { _writeObject } from "../storage/write-object.ts";
+import { _writeCommit } from "../commands/write-commit.ts";
+import { _writeRef } from "../commands/write-ref.ts";
 import { FileSystem } from "../models/file-system.ts";
+import { GitCommit } from "../models/git-commit.ts";
 import { GitRefManager } from "../managers/git-ref.ts";
 import { join } from "../utils/join.ts";
 import { NotFoundError } from "../errors/not-found.ts";
@@ -298,6 +302,24 @@ async function executeRebase({
         };
       }
 
+      // Check if rebase was paused (break command)
+      if ((result as any).paused) {
+        return {
+          success: true,
+          paused: true,
+          message: (result as any).message || "Rebase paused."
+        };
+      }
+
+      // Check if command failed (exec command)
+      if (result.success === false) {
+        await saveRebaseState(fs, gitdir, state);
+        return {
+          success: false,
+          message: (result as any).message || "Command failed during rebase."
+        };
+      }
+
       // Move to next todo item
       state.current++;
       currentTodo.done = true;
@@ -361,10 +383,10 @@ async function executeTodoItem({
       return await executeFixup(cache, dir, fs, gitdir, item);
       
     case "exec":
-      return await executeExec(item);
+      return await executeExec(cache, dir, fs, gitdir, item);
       
     case "break":
-      return await executeBreak();
+      return await executeBreak(cache, dir, fs, gitdir, state);
       
     case "drop":
       return {}; // Do nothing for drop
@@ -404,34 +426,316 @@ async function executePick(
  * Execute other commands (simplified implementations)
  */
 async function executeReword(cache: Cache, dir: string, fs: FileSystem, gitdir: string, item: RebaseTodoItem) {
-  // TODO: Implement reword - pause for message editing
-  return await executePick(cache, dir, fs, gitdir, item);
+  // Reword: Apply commit but allow message editing
+  try {
+    // Apply the commit changes (cherry-pick with no-commit)
+    await _cherryPick({
+      cache,
+      dir,
+      fs,
+      gitdir,
+      oid: item.commit,
+      noCommit: true
+    });
+    
+    // Get the original commit info
+    const { object } = await _readObject({
+      cache,
+      fs: fs as any,
+      gitdir,
+      oid: item.commit
+    });
+    const commit = GitCommit.from(object);
+    
+    // Use rewritten message from todo item if provided, otherwise original message
+    const message = item.message || commit.message;
+    
+    // Create new commit with potentially edited message
+    const newCommit = await _writeCommit({
+      fs: fs as any,
+      gitdir,
+      commit: {
+        tree: commit.tree,
+        parent: [await _resolveRef({ cache, fs, gitdir, ref: "HEAD" })],
+        author: commit.author,
+        committer: {
+          ...commit.committer,
+          timestamp: Math.floor(Date.now() / 1000),
+          timezoneOffset: new Date().getTimezoneOffset()
+        },
+        message
+      }
+    });
+    
+    // Update HEAD to new commit
+    await _writeRef({
+      fs,
+      gitdir,
+      ref: "HEAD",
+      value: newCommit
+    });
+    
+    return {};
+  } catch (error) {
+    return { conflicts: [item.commit] };
+  }
 }
 
 async function executeEdit(cache: Cache, dir: string, fs: FileSystem, gitdir: string, item: RebaseTodoItem) {
-  // TODO: Implement edit - pause for manual editing
-  return await executePick(cache, dir, fs, gitdir, item);
+  // Edit: Apply commit but pause for manual editing
+  try {
+    // Apply the commit changes (cherry-pick with no-commit)
+    await _cherryPick({
+      cache,
+      dir,
+      fs,
+      gitdir,
+      oid: item.commit,
+      noCommit: true
+    });
+    
+    // For edit operations, we stop here and let the user manually make changes
+    // In a real interactive rebase, this would pause the process and wait for user to continue
+    // For this implementation, we'll just apply the commit as-is
+    // but in practice, the user would run `git rebase --continue` after making edits
+    
+    // Get the original commit info
+    const { object } = await _readObject({
+      cache,
+      fs: fs as any,
+      gitdir,
+      oid: item.commit
+    });
+    const commit = GitCommit.from(object);
+    
+    // Create new commit (user would normally amend this)
+    const newCommit = await _writeCommit({
+      fs: fs as any,
+      gitdir,
+      commit: {
+        tree: commit.tree,
+        parent: [await _resolveRef({ cache, fs, gitdir, ref: "HEAD" })],
+        author: commit.author,
+        committer: {
+          ...commit.committer,
+          timestamp: Math.floor(Date.now() / 1000),
+          timezoneOffset: new Date().getTimezoneOffset()
+        },
+        message: commit.message
+      }
+    });
+    
+    // Update HEAD to new commit
+    await _writeRef({
+      fs,
+      gitdir,
+      ref: "HEAD", 
+      value: newCommit
+    });
+    
+    return {};
+  } catch (error) {
+    return { conflicts: [item.commit] };
+  }
 }
 
 async function executeSquash(cache: Cache, dir: string, fs: FileSystem, gitdir: string, item: RebaseTodoItem) {
-  // TODO: Implement squash - combine with previous commit
-  return await executePick(cache, dir, fs, gitdir, item);
+  // Squash: Combine this commit with the previous one, keeping both commit messages
+  try {
+    // Apply the commit changes (cherry-pick with no-commit)
+    await _cherryPick({
+      cache,
+      dir,
+      fs,
+      gitdir,
+      oid: item.commit,
+      noCommit: true
+    });
+    
+    // Get the current HEAD commit (previous commit)
+    const headOid = await _resolveRef({ cache, fs, gitdir, ref: "HEAD" });
+    const { object: headObject } = await _readObject({
+      cache,
+      fs: fs as any,
+      gitdir,
+      oid: headOid
+    });
+    const headCommit = GitCommit.from(headObject);
+    
+    // Get the squash commit info
+    const { object: squashObject } = await _readObject({
+      cache,
+      fs: fs as any,
+      gitdir,
+      oid: item.commit
+    });
+    const squashCommit = GitCommit.from(squashObject);
+    
+    // Combine commit messages
+    const combinedMessage = `${headCommit.message}\n\n${squashCommit.message}`;
+    
+    // Create a new commit that replaces the previous one, combining both changes
+    const newCommit = await _writeCommit({
+      fs: fs as any,
+      gitdir,
+      commit: {
+        tree: squashCommit.tree, // Use the tree after applying squash changes
+        parent: headCommit.parent, // Use the parent of the original commit
+        author: headCommit.author, // Keep original author
+        committer: {
+          ...headCommit.committer,
+          timestamp: Math.floor(Date.now() / 1000),
+          timezoneOffset: new Date().getTimezoneOffset()
+        },
+        message: combinedMessage
+      }
+    });
+    
+    // Update HEAD to new combined commit
+    await _writeRef({
+      fs,
+      gitdir,
+      ref: "HEAD",
+      value: newCommit
+    });
+    
+    return {};
+  } catch (error) {
+    return { conflicts: [item.commit] };
+  }
 }
 
 async function executeFixup(cache: Cache, dir: string, fs: FileSystem, gitdir: string, item: RebaseTodoItem) {
-  // TODO: Implement fixup - combine with previous commit, discard message
-  return await executePick(cache, dir, fs, gitdir, item);
+  // Fixup: Combine this commit with the previous one, discarding this commit's message
+  try {
+    // Apply the commit changes (cherry-pick with no-commit)
+    await _cherryPick({
+      cache,
+      dir,
+      fs,
+      gitdir,
+      oid: item.commit,
+      noCommit: true
+    });
+    
+    // Get the current HEAD commit (previous commit)
+    const headOid = await _resolveRef({ cache, fs, gitdir, ref: "HEAD" });
+    const { object: headObject } = await _readObject({
+      cache,
+      fs: fs as any,
+      gitdir,
+      oid: headOid
+    });
+    const headCommit = GitCommit.from(headObject);
+    
+    // Get the fixup commit info (for tree)
+    const { object: fixupObject } = await _readObject({
+      cache,
+      fs: fs as any,
+      gitdir,
+      oid: item.commit
+    });
+    const fixupCommit = GitCommit.from(fixupObject);
+    
+    // Create a new commit that replaces the previous one with combined changes
+    // but keeps only the original commit message (discard fixup message)
+    const newCommit = await _writeCommit({
+      fs: fs as any,
+      gitdir,
+      commit: {
+        tree: fixupCommit.tree, // Use the tree after applying fixup changes
+        parent: headCommit.parent, // Use the parent of the original commit
+        author: headCommit.author, // Keep original author
+        committer: {
+          ...headCommit.committer,
+          timestamp: Math.floor(Date.now() / 1000),
+          timezoneOffset: new Date().getTimezoneOffset()
+        },
+        message: headCommit.message // Keep only the original message
+      }
+    });
+    
+    // Update HEAD to new combined commit
+    await _writeRef({
+      fs,
+      gitdir,
+      ref: "HEAD",
+      value: newCommit
+    });
+    
+    return {};
+  } catch (error) {
+    return { conflicts: [item.commit] };
+  }
 }
 
-async function executeExec(item: RebaseTodoItem) {
-  // TODO: Implement exec - run shell command
-  console.log(`Would execute: ${item.message}`);
-  return {};
+async function executeExec(cache: Cache, dir: string, fs: FileSystem, gitdir: string, item: RebaseTodoItem) {
+  const command = item.message.trim();
+  
+  if (!command) {
+    return {
+      conflicts: [],
+      success: false,
+      message: "No command specified for exec"
+    };
+  }
+
+  try {
+    // Execute the command using Deno.Command with shell interpretation
+    const process = new Deno.Command("sh", {
+      args: ["-c", command],
+      cwd: dir,
+      stdout: "piped",
+      stderr: "piped"
+    });
+
+    const { code, stdout, stderr } = await process.output();
+    
+    // Convert output to strings
+    const stdoutText = new TextDecoder().decode(stdout);
+    const stderrText = new TextDecoder().decode(stderr);
+    
+    // Log output for user visibility
+    if (stdoutText) {
+      console.log(stdoutText);
+    }
+    if (stderrText) {
+      console.error(stderrText);
+    }
+
+    if (code === 0) {
+      return {
+        conflicts: [],
+        success: true,
+        message: `Successfully executed: ${command}`
+      };
+    } else {
+      return {
+        conflicts: [],
+        success: false,
+        message: `Command failed with exit code ${code}: ${command}`
+      };
+    }
+
+  } catch (error) {
+    return {
+      conflicts: [],
+      success: false,
+      message: `Failed to execute command: ${(error as Error).message}`
+    };
+  }
 }
 
-async function executeBreak() {
-  // TODO: Implement break - pause rebase
-  return {};
+async function executeBreak(cache: Cache, dir: string, fs: FileSystem, gitdir: string, state: RebaseState) {
+  // Save current rebase state to allow resumption
+  await saveRebaseState(fs, gitdir, state);
+  
+  return {
+    conflicts: [],
+    success: true,
+    paused: true, // Special flag to indicate rebase should pause
+    message: "Rebase paused at break command. Use 'git rebase --continue' to resume."
+  };
 }
 
 /**
@@ -459,13 +763,80 @@ async function getCommitRange({
   from: string;
   to: string;
 }): Promise<Array<{ oid: string; message: string }>> {
-  // Simplified implementation - get commits between from and to
+  // Implement proper commit range walking
   const commits: Array<{ oid: string; message: string }> = [];
   
-  // TODO: Implement proper commit range walking
-  // This would walk from 'to' back to 'from' and collect commits
-  
-  return commits;
+  try {
+    // Resolve the 'to' and 'from' references to commit OIDs
+    const toOid = await _resolveRef({ cache, fs, gitdir, ref: to });
+    const fromOid = await _resolveRef({ cache, fs, gitdir, ref: from });
+    
+    if (!toOid || !fromOid) {
+      return commits;
+    }
+    
+    // Walk backwards from 'to' until we reach 'from' (or a common ancestor)
+    const visited = new Set<string>();
+    const stack = [toOid];
+    
+    while (stack.length > 0) {
+      const currentOid = stack.pop()!;
+      
+      // Skip if we've already processed this commit
+      if (visited.has(currentOid)) {
+        continue;
+      }
+      visited.add(currentOid);
+      
+      // Stop if we've reached the 'from' commit (don't include it)
+      if (currentOid === fromOid) {
+        break;
+      }
+      
+      try {
+        // Get the commit object
+        const { type, object } = await _readObject({
+          cache,
+          fs: fs as any,
+          gitdir,
+          oid: currentOid
+        });
+        
+        if (type !== "commit") {
+          continue;
+        }
+        
+        const commit = GitCommit.from(object);
+        
+        // Add this commit to our list (in reverse chronological order)
+        commits.push({
+          oid: currentOid,
+          message: commit.message
+        });
+        
+        // Add parent commits to the stack for processing
+        for (const parentOid of commit.parent) {
+          if (!visited.has(parentOid)) {
+            stack.push(parentOid);
+          }
+        }
+        
+      } catch (error) {
+        // Skip commits we can't read
+        continue;
+      }
+    }
+    
+    // Reverse the commits to get them in chronological order (oldest first)
+    // This is the order they should be applied during rebase
+    commits.reverse();
+    
+    return commits;
+    
+  } catch (error) {
+    // If we can't resolve refs or walk commits, return empty array
+    return [];
+  }
 }
 
 async function getCurrentBranchName(fs: FileSystem, gitdir: string): Promise<string> {
@@ -496,8 +867,22 @@ async function checkoutCommit({
   gitdir: string;
   oid: string;
 }): Promise<void> {
-  // TODO: Implement proper checkout
-  // This would checkout the specified commit
+  // Implement proper checkout using the existing checkout command
+  try {
+    await _checkout({
+      cache,
+      dir,
+      fs: fs as any,
+      gitdir,
+      ref: oid, // Checkout the specific commit
+      force: false,
+      filepaths: [], // Checkout all files
+      remote: undefined,
+      noUpdateHead: true // Don't update HEAD - rebase will handle that
+    });
+  } catch (error) {
+    throw new Error(`Failed to checkout commit ${oid}: ${(error as Error).message}`);
+  }
 }
 
 async function saveRebaseState(fs: FileSystem, gitdir: string, state: RebaseState): Promise<void> {

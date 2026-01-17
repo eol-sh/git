@@ -95,6 +95,7 @@ export async function _revert({
   
   // Create a reverse patch (from commit back to parent)
   const reversePatch = await createReversePatch({
+    cache,
     fs,
     gitdir,
     fromOid: commitOid,
@@ -219,21 +220,100 @@ function parseCommit(object: Uint8Array): {
  * Create a reverse patch (from commit to parent)
  */
 async function createReversePatch({
+  cache,
   fs,
   gitdir,
   fromOid,
   toOid
 }: {
+  cache: Cache;
   fs: FileSystem;
   gitdir: string;
   fromOid: string;
   toOid: string;
 }): Promise<any> {
-  // This would create a patch that reverses the changes
-  // For simplicity, returning a placeholder
-  return {
-    files: []
-  };
+  // Get trees for both commits
+  const fromCommit = await GitCommit.from({ fs: fs as any, gitdir, oid: fromOid });
+  const toCommit = await GitCommit.from({ fs: fs as any, gitdir, oid: toOid });
+  
+  const fromTree = await _readTree({ fs, gitdir, oid: fromCommit.tree });
+  const toTree = await _readTree({ fs, gitdir, oid: toCommit.tree });
+  
+  // Get file lists from both trees
+  const fromFiles = await flattenTree(fromTree, fs, gitdir);
+  const toFiles = await flattenTree(toTree, fs, gitdir);
+  
+  // Build reverse patch - from 'to' back to 'from'
+  const files = [];
+  const allPaths = new Set([...fromFiles.keys(), ...toFiles.keys()]);
+  
+  for (const filepath of allPaths) {
+    const fromFile = fromFiles.get(filepath);
+    const toFile = toFiles.get(filepath);
+    
+    if (!fromFile && toFile) {
+      // File was added in fromOid, so delete it in reverse
+      files.push({
+        filepath,
+        status: 'delete',
+        oldMode: toFile.mode,
+        oldOid: toFile.oid,
+        newMode: null,
+        newOid: null
+      });
+    } else if (fromFile && !toFile) {
+      // File was deleted in fromOid, so add it back in reverse
+      files.push({
+        filepath,
+        status: 'add',
+        oldMode: null,
+        oldOid: null,
+        newMode: fromFile.mode,
+        newOid: fromFile.oid
+      });
+    } else if (fromFile && toFile && fromFile.oid !== toFile.oid) {
+      // File was modified, reverse the changes
+      files.push({
+        filepath,
+        status: 'modify',
+        oldMode: toFile.mode,
+        oldOid: toFile.oid,
+        newMode: fromFile.mode,
+        newOid: fromFile.oid
+      });
+    }
+  }
+  
+  return { files };
+}
+
+/**
+ * Flatten a tree into a map of filepath -> {oid, mode}
+ */
+async function flattenTree(
+  tree: any,
+  fs: FileSystem,
+  gitdir: string,
+  prefix = ""
+): Promise<Map<string, { oid: string; mode: string }>> {
+  const files = new Map();
+  
+  for (const entry of tree.entries()) {
+    const filepath = prefix ? `${prefix}/${entry.path}` : entry.path;
+    
+    if (entry.type === "tree") {
+      // Recursively flatten subtree
+      const subtree = await _readTree({ fs, gitdir, oid: entry.oid });
+      const subFiles = await flattenTree(subtree, fs, gitdir, filepath);
+      for (const [path, info] of subFiles) {
+        files.set(path, info);
+      }
+    } else if (entry.type === "blob") {
+      files.set(filepath, { oid: entry.oid, mode: entry.mode });
+    }
+  }
+  
+  return files;
 }
 
 /**
@@ -254,12 +334,53 @@ async function applyReversePatch({
 }): Promise<string[]> {
   const conflicts: string[] = [];
   
-  // Apply patch to index
+  // Apply reverse patch to working directory and index
   await GitIndexManager.acquire(
     { cache, fs: fs as any, gitdir },
     async (index) => {
-      // This would apply the reverse patch
-      // For now, simplified implementation
+      for (const file of patch.files) {
+        const filepath = `${dir}/${file.filepath}`;
+        
+        try {
+          if (file.status === 'add') {
+            // File was added in original commit, so add it back in revert
+            if (file.newOid && file.newMode) {
+              const { object } = await _readObject({ 
+                fs: fs as any, 
+                gitdir, 
+                oid: file.newOid 
+              });
+              await fs.writeFile(filepath, object);
+              const stats = await fs.lstat(filepath);
+              index.insert({ filepath: file.filepath, oid: file.newOid, stats });
+            }
+          } else if (file.status === 'delete') {
+            // File was deleted in original commit, so delete it in revert
+            try {
+              await fs.rm(filepath);
+            } catch {
+              // File might not exist
+            }
+            index.delete({ filepath: file.filepath });
+          } else if (file.status === 'modify') {
+            // File was modified in original commit, so restore to previous state
+            if (file.newOid && file.newMode) {
+              const { object } = await _readObject({ 
+                fs: fs as any, 
+                gitdir, 
+                oid: file.newOid 
+              });
+              await fs.writeFile(filepath, object);
+              const stats = await fs.lstat(filepath);
+              index.insert({ filepath: file.filepath, oid: file.newOid, stats });
+            }
+          }
+        } catch (error) {
+          // If we can't apply the patch for any file, mark it as a conflict
+          conflicts.push(file.filepath);
+          console.error(`Conflict applying revert to ${file.filepath}: ${error}`);
+        }
+      }
     }
   );
   
@@ -292,8 +413,8 @@ async function createRevertCommit({
   await GitIndexManager.acquire(
     { cache, fs: fs as any, gitdir },
     async (index) => {
-      // Write tree from index (simplified)
-      treeOid = "placeholder-tree-oid";
+      // Write tree from index
+      treeOid = await index.writeTree({ fs: fs as any, gitdir });
     }
   );
   

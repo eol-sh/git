@@ -324,12 +324,12 @@ async function processBlameHistory({
   filepath: string;
   lineBlames: LineBlame[];
 }): Promise<void> {
-  // This is a simplified blame algorithm
-  // A full implementation would track line movements through diffs
+  // Advanced blame algorithm with proper line tracking through commit history
+  // Tracks line movements through diffs and recursively finds line origins
   
-  // For now, assign the most recent commit that modified the file
+  // Initialize with the most recent commit, then refine through diff analysis
   if (commits.length > 0) {
-    // Simple approach: assign first commit to all lines
+    // Initial assignment: assign first commit to all lines as default
     const latestCommit = commits[0];
     
     for (const blame of lineBlames) {
@@ -365,10 +365,20 @@ async function processBlameHistory({
       const currentLines = splitLines(currentContent);
       const parentLines = splitLines(parentContent);
       
-      // Use diff to find added lines
+      // Use diff to find line changes with better tracking
       const edits = myersDiff(parentLines, currentLines);
       
+      // Track line mapping from parent to current
+      const lineMapping = new Map<number, number>(); // parent line -> current line
+      let parentLineOffset = 0;
+      let currentLineOffset = 0;
+      
       for (const edit of edits) {
+        // Map unchanged lines before this edit
+        for (let k = parentLineOffset; k < edit.oldStart; k++) {
+          lineMapping.set(k + 1, currentLineOffset + (k - parentLineOffset) + 1);
+        }
+        
         if (edit.type === "insert") {
           // Lines added in this commit
           for (let j = edit.newStart; j < edit.newEnd; j++) {
@@ -379,8 +389,170 @@ async function processBlameHistory({
               blame.originalLine = j + 1;
             }
           }
+          currentLineOffset += edit.newEnd - edit.newStart;
+        } else if (edit.type === "delete") {
+          // Lines deleted - we'll need to track which lines moved
+          parentLineOffset += edit.oldEnd - edit.oldStart;
+        } else if (edit.type === "replace") {
+          // Lines modified - treat new lines as added by this commit
+          for (let j = edit.newStart; j < edit.newEnd; j++) {
+            const lineNum = j + 1;
+            const blame = lineBlames.find(b => b.lineNumber === lineNum);
+            if (blame && (!blame.commit || blame.commit.oid === latestCommit.oid)) {
+              blame.commit = commit;
+              blame.originalLine = j + 1;
+            }
+          }
+          parentLineOffset += edit.oldEnd - edit.oldStart;
+          currentLineOffset += edit.newEnd - edit.newStart;
+        }
+        
+        parentLineOffset = edit.oldEnd;
+        currentLineOffset = edit.newEnd;
+      }
+      
+      // Map remaining unchanged lines after all edits
+      for (let k = parentLineOffset; k < parentLines.length; k++) {
+        lineMapping.set(k + 1, currentLineOffset + (k - parentLineOffset) + 1);
+      }
+      
+      // Update blame info for lines that moved from parent
+      for (const [parentLine, currentLine] of lineMapping) {
+        const blame = lineBlames.find(b => b.lineNumber === currentLine);
+        if (blame && (!blame.commit || blame.commit.oid === latestCommit.oid)) {
+          // This line existed in parent - recursively find its origin
+          const parentBlame = await findLineOrigin({
+            cache,
+            fs,
+            gitdir,
+            commits: commits.slice(i + 1), // Continue from parent commit
+            filepath,
+            lineNumber: parentLine,
+            stopAtCommit: parentCommit.oid
+          });
+          
+          if (parentBlame) {
+            blame.commit = parentBlame.commit;
+            blame.originalLine = parentBlame.originalLine;
+          } else {
+            // If we can't find origin, attribute to parent commit
+            blame.commit = parentCommit;
+            blame.originalLine = parentLine;
+          }
         }
       }
     }
   }
+}
+
+/**
+ * Recursively find the original commit that introduced a specific line
+ */
+async function findLineOrigin({
+  cache,
+  fs,
+  gitdir,
+  commits,
+  filepath,
+  lineNumber,
+  stopAtCommit
+}: {
+  cache: Cache;
+  fs: FileSystem;
+  gitdir: string;
+  commits: CommitInfo[];
+  filepath: string;
+  lineNumber: number;
+  stopAtCommit: string;
+}): Promise<{ commit: CommitInfo; originalLine: number } | null> {
+  if (commits.length === 0) return null;
+  
+  const currentCommit = commits[0];
+  if (currentCommit.oid === stopAtCommit) {
+    return { commit: currentCommit, originalLine: lineNumber };
+  }
+  
+  // Check if the line exists at this commit
+  const content = await getFileAtCommit({
+    cache,
+    fs,
+    gitdir,
+    oid: currentCommit.oid,
+    filepath
+  });
+  
+  if (!content) return null;
+  
+  const lines = splitLines(content);
+  if (lineNumber > lines.length || lineNumber < 1) return null;
+  
+  // If this is the first commit in history, it introduced the line
+  if (commits.length === 1) {
+    return { commit: currentCommit, originalLine: lineNumber };
+  }
+  
+  const parentCommit = commits[1];
+  const parentContent = await getFileAtCommit({
+    cache,
+    fs,
+    gitdir,
+    oid: parentCommit.oid,
+    filepath
+  });
+  
+  if (!parentContent) {
+    // File was created in this commit
+    return { commit: currentCommit, originalLine: lineNumber };
+  }
+  
+  const parentLines = splitLines(parentContent);
+  const edits = myersDiff(parentLines, lines);
+  
+  // Track where this line came from in the parent
+  let currentOffset = 0;
+  let parentOffset = 0;
+  
+  for (const edit of edits) {
+    const lineInEditRange = lineNumber >= currentOffset + 1 && lineNumber <= edit.newEnd;
+    
+    if (edit.type === "insert" && lineInEditRange) {
+      // Line was added in this commit
+      return { commit: currentCommit, originalLine: lineNumber };
+    }
+    
+    if (edit.type === "replace" && lineInEditRange) {
+      // Line was modified in this commit
+      return { commit: currentCommit, originalLine: lineNumber };
+    }
+    
+    if (lineNumber <= currentOffset + (edit.newStart - currentOffset)) {
+      // Line is before this edit - map to parent
+      const parentLineNumber = parentOffset + (lineNumber - currentOffset);
+      return await findLineOrigin({
+        cache,
+        fs,
+        gitdir,
+        commits: commits.slice(1),
+        filepath,
+        lineNumber: parentLineNumber,
+        stopAtCommit
+      });
+    }
+    
+    // Update offsets for next iteration
+    parentOffset = edit.oldEnd;
+    currentOffset = edit.newEnd;
+  }
+  
+  // Line is after all edits - map directly to parent
+  const parentLineNumber = parentOffset + (lineNumber - currentOffset);
+  return await findLineOrigin({
+    cache,
+    fs,
+    gitdir,
+    commits: commits.slice(1),
+    filepath,
+    lineNumber: parentLineNumber,
+    stopAtCommit
+  });
 }

@@ -2,7 +2,7 @@
  * Git bisect API - Binary search for bug introduction
  */
 
-import { _bisectStart, _bisectGood, _bisectBad, _bisectSkip, _bisectReset, _bisectLog, _bisectReplay } from "../commands/bisect.ts";
+import { _bisectStart, _bisectGood, _bisectBad, _bisectSkip, _bisectReset, _bisectLog, _bisectReplay, _bisectRun } from "../commands/bisect.ts";
 import { assertParameter } from "../utils/assert-parameter.ts";
 import { FileSystem } from "../models/file-system.ts";
 import { BisectRunResult, BisectSearchResult, BisectCommand } from "../models/bisect-state.ts";
@@ -349,9 +349,15 @@ export async function bisectRun({
     assertParameter("gitdir", gitdir);
     assertParameter("script", script);
 
-    // Note: bisect run would require process execution capabilities
-    // This is a simplified implementation for the interface
-    throw new Error("git bisect run is not yet implemented - requires process execution");
+    const fileSystem = new FileSystem(_fs);
+    
+    return await _bisectRun({
+      cache,
+      dir,
+      fs: fileSystem,
+      gitdir,
+      script
+    });
   } catch (err: unknown) {
     (err as any).caller = "git.bisect.run";
     throw err;
