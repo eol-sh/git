@@ -1,10 +1,11 @@
 /**
  * Git grep utilities
- * 
+ *
  * Implementation of pattern searching in git repository content
  */
 
 import { FileSystem } from "../models/file-system.ts";
+import { adaptFileSystem } from "../utils/fs-adapter.ts";
 import { readBlob } from "../api/read-blob.ts";
 import { readTree } from "../api/read-tree.ts";
 import { readCommit } from "../api/read-commit.ts";
@@ -62,27 +63,28 @@ export async function grep({
   cache = new Map()
 }: GrepOptions): Promise<GrepResult> {
   const regex = createSearchRegex(pattern, { ignoreCase, wholeWord });
-  
+  const adaptedFs = adaptFileSystem(fs);
+
   let filesToSearch: Array<{ path: string; oid?: string }>;
-  
+
   if (ref) {
     // Search in a specific commit/tree
-    filesToSearch = await getFilesFromRef(fs, gitdir, ref, paths, cache);
+    filesToSearch = await getFilesFromRef(fs, adaptedFs, gitdir, ref, paths, cache);
   } else {
     // Search in working directory
     filesToSearch = await getFilesFromWorkingDirectory(fs, dir, paths);
   }
-  
+
   const allMatches: GrepMatch[] = [];
   const matchedFiles = new Set<string>();
-  
+
   for (const { path, oid } of filesToSearch) {
     let content: string;
-    
+
     if (oid) {
       // Read from git object
       const blob = await readBlob({
-        fs: fs,
+        fs: adaptedFs,
         gitdir,
         oid
       });
@@ -91,12 +93,12 @@ export async function grep({
       // Read from working directory
       try {
         content = new TextDecoder().decode(await fs.read(join(dir, path)) as Uint8Array);
-      } catch (error) {
+      } catch {
         // File might not exist or be binary
         continue;
       }
     }
-    
+
     const matches = searchInContent(
       content,
       regex,
@@ -109,13 +111,13 @@ export async function grep({
         filenameOnly
       }
     );
-    
+
     if (matches.length > 0) {
       allMatches.push(...matches);
       matchedFiles.add(path);
     }
   }
-  
+
   return {
     matches: allMatches,
     fileCount: matchedFiles.size,
@@ -141,14 +143,14 @@ function searchInContent(
   const lines = content.split("\n");
   const matches: GrepMatch[] = [];
   let matchCount = 0;
-  
+
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i];
     const hasMatch = regex.test(line);
-    
+
     // Handle invert match option
     const shouldInclude = options.invertMatch ? !hasMatch : hasMatch;
-    
+
     if (shouldInclude) {
       if (options.filenameOnly) {
         // Just return one match to indicate file contains matches
@@ -160,11 +162,11 @@ function searchInContent(
           match: ""
         }];
       }
-      
+
       if (hasMatch && !options.invertMatch) {
         // Find all matches in the line
         const lineMatches = Array.from(line.matchAll(new RegExp(regex.source, regex.flags + "g")));
-        
+
         for (const match of lineMatches) {
           matches.push({
             file: filepath,
@@ -173,9 +175,9 @@ function searchInContent(
             content: line,
             match: match[0]
           });
-          
+
           matchCount++;
-          
+
           if (options.maxCount && matchCount >= options.maxCount) {
             return matches;
           }
@@ -189,21 +191,21 @@ function searchInContent(
           content: line,
           match: ""
         });
-        
+
         matchCount++;
-        
+
         if (options.maxCount && matchCount >= options.maxCount) {
           return matches;
         }
       }
     }
   }
-  
+
   // Add context lines if requested
   if (options.contextLines > 0 && matches.length > 0) {
     return addContextLines(matches, lines, options.contextLines);
   }
-  
+
   return matches;
 }
 
@@ -217,10 +219,10 @@ function addContextLines(
 ): GrepMatch[] {
   const result: GrepMatch[] = [];
   const addedLines = new Set<string>();
-  
+
   for (const match of matches) {
     const lineIndex = match.line - 1;
-    
+
     // Add lines before the match
     for (let i = Math.max(0, lineIndex - contextLines); i < lineIndex; i++) {
       const key = `${match.file}:${i + 1}`;
@@ -235,11 +237,11 @@ function addContextLines(
         addedLines.add(key);
       }
     }
-    
+
     // Add the actual match
     result.push(match);
     addedLines.add(`${match.file}:${match.line}`);
-    
+
     // Add lines after the match
     for (let i = lineIndex + 1; i <= Math.min(allLines.length - 1, lineIndex + contextLines); i++) {
       const key = `${match.file}:${i + 1}`;
@@ -255,7 +257,7 @@ function addContextLines(
       }
     }
   }
-  
+
   return result;
 }
 
@@ -269,19 +271,19 @@ function createSearchRegex(
   if (pattern instanceof RegExp) {
     return pattern;
   }
-  
+
   let regexPattern = pattern;
-  
+
   // Escape special regex characters if it's a plain string
   regexPattern = regexPattern.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-  
+
   // Add word boundary if wholeWord is true
   if (options.wholeWord) {
     regexPattern = `\\b${regexPattern}\\b`;
   }
-  
+
   const flags = options.ignoreCase ? "i" : "";
-  
+
   return new RegExp(regexPattern, flags);
 }
 
@@ -290,41 +292,42 @@ function createSearchRegex(
  */
 async function getFilesFromRef(
   fs: FileSystem,
+  adaptedFs: any,
   gitdir: string,
   ref: string,
   paths?: string[],
   cache?: Map<string, any>
 ): Promise<Array<{ path: string; oid: string }>> {
   const oid = await resolveRef({
-    fs: fs,
+    fs: adaptedFs,
     gitdir,
     ref
   });
-  
+
   const commit = await readCommit({
-    fs: fs,
+    fs: adaptedFs,
     gitdir,
     oid
   });
-  
+
   const tree = await readTree({
-    fs: fs,
+    fs: adaptedFs,
     gitdir,
     oid: commit.commit.tree
   });
-  
+
   const files: Array<{ path: string; oid: string }> = [];
-  
+
   // Recursively collect all files from tree
-  await collectTreeFiles(fs, gitdir, tree.tree, "", files, cache);
-  
+  await collectTreeFiles(fs, adaptedFs, gitdir, tree.tree, "", files, cache);
+
   // Filter by paths if specified
   if (paths && paths.length > 0) {
-    return files.filter(file => 
+    return files.filter(file =>
       paths.some(path => file.path === path || file.path.startsWith(path + "/"))
     );
   }
-  
+
   return files;
 }
 
@@ -333,6 +336,7 @@ async function getFilesFromRef(
  */
 async function collectTreeFiles(
   fs: FileSystem,
+  adaptedFs: any,
   gitdir: string,
   treeEntries: Array<{ mode: string; path: string; oid: string; type: string }>,
   basePath: string,
@@ -341,7 +345,7 @@ async function collectTreeFiles(
 ): Promise<void> {
   for (const entry of treeEntries) {
     const fullPath = basePath ? join(basePath, entry.path) : entry.path;
-    
+
     if (entry.type === "blob") {
       // It's a file
       files.push({
@@ -351,12 +355,12 @@ async function collectTreeFiles(
     } else if (entry.type === "tree") {
       // It's a directory, recurse
       const subtree = await readTree({
-        fs: fs,
+        fs: adaptedFs,
         gitdir,
         oid: entry.oid
       });
-      
-      await collectTreeFiles(fs, gitdir, subtree.tree, fullPath, files, cache);
+
+      await collectTreeFiles(fs, adaptedFs, gitdir, subtree.tree, fullPath, files, cache);
     }
   }
 }
@@ -370,21 +374,21 @@ async function getFilesFromWorkingDirectory(
   paths?: string[]
 ): Promise<Array<{ path: string }>> {
   const files: Array<{ path: string }> = [];
-  
+
   if (paths && paths.length > 0) {
     // Search specific paths
     for (const path of paths) {
       const fullPath = join(dir, path);
-      
+
       try {
         const stat = await fs.lstat(fullPath);
-        
-        if (stat.isFile()) {
+
+        if (stat && stat.isFile()) {
           files.push({ path });
-        } else if (stat.isDirectory()) {
+        } else if (stat && stat.isDirectory()) {
           await collectDirectoryFiles(fs, dir, path, files);
         }
-      } catch (error) {
+      } catch {
         // Path doesn't exist, skip
       }
     }
@@ -392,7 +396,7 @@ async function getFilesFromWorkingDirectory(
     // Search all files in working directory
     await collectDirectoryFiles(fs, dir, "", files);
   }
-  
+
   return files;
 }
 
@@ -406,19 +410,21 @@ async function collectDirectoryFiles(
   files: Array<{ path: string }>
 ): Promise<void> {
   const fullPath = relativePath ? join(baseDir, relativePath) : baseDir;
-  
+
   try {
     const entries = await fs.readdir(fullPath);
-    
+
+    if (!entries) return;
+
     for (const entryName of entries) {
       // Skip .git directory
       if (entryName === ".git") {
         continue;
       }
-      
+
       const entryRelativePath = relativePath ? join(relativePath, entryName) : entryName;
       const entryFullPath = join(fullPath, entryName);
-      
+
       try {
         const stat = await fs.lstat(entryFullPath);
         if (stat && stat.isFile()) {
@@ -430,7 +436,7 @@ async function collectDirectoryFiles(
         // Entry might not be accessible, skip
       }
     }
-  } catch (error) {
+  } catch {
     // Directory might not be accessible, skip
   }
 }
@@ -444,9 +450,9 @@ export function formatGrepResults(
 ): string[] {
   const { showLineNumbers = true, showFilenames = true } = options;
   const lines: string[] = [];
-  
+
   let currentFile = "";
-  
+
   for (const match of results.matches) {
     if (showFilenames && match.file !== currentFile) {
       if (currentFile !== "") {
@@ -455,9 +461,9 @@ export function formatGrepResults(
       lines.push(`${match.file}:`);
       currentFile = match.file;
     }
-    
+
     let line = "";
-    
+
     if (showFilenames && !showLineNumbers) {
       line = `${match.file}:${match.content}`;
     } else if (showLineNumbers) {
@@ -466,9 +472,9 @@ export function formatGrepResults(
     } else {
       line = match.content;
     }
-    
+
     lines.push(line);
   }
-  
+
   return lines;
 }

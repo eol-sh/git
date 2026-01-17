@@ -122,7 +122,7 @@ function rotateLeft(value: number, shift: number): number {
 }
 
 async function subtleSHA1(buffer: Uint8Array | ArrayBuffer): Promise<string> {
-  const hash = await crypto.subtle.digest("SHA-1", buffer);
+  const hash = await crypto.subtle.digest("SHA-1", buffer as ArrayBuffer | DataView | Uint8Array);
   return toHex(hash);
 }
 

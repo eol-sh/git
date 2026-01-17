@@ -15,18 +15,18 @@ import { GitCommit } from "../models/git-commit.ts";
 import { GitRefManager } from "../managers/git-ref.ts";
 import { join } from "../utils/join.ts";
 import { NotFoundError } from "../errors/not-found.ts";
-import { ObjectTypeError } from "../errors/object-type.ts";
-import { 
-  RebaseState, 
-  RebaseOptions, 
-  RebaseResult, 
-  RebaseTodoItem, 
-  RebaseAction,
-  REBASE_PATHS 
+// import { ObjectTypeError } from "../errors/object-type.ts";
+import {
+  RebaseState,
+  RebaseOptions,
+  RebaseResult,
+  RebaseTodoItem,
+  // RebaseAction,
+  REBASE_PATHS
 } from "../models/rebase-state.ts";
-import { 
-  parseRebaseTodo, 
-  formatRebaseTodo, 
+import {
+  parseRebaseTodo,
+  formatRebaseTodo,
   createDefaultTodoList,
   validateTodoList,
   applyAutosquash
@@ -72,7 +72,7 @@ export async function _rebase({
   // Resolve refs
   const ontoOid = onto ? await resolveCommit(fs, gitdir, cache, onto) : null;
   const upstreamOid = upstream ? await resolveCommit(fs, gitdir, cache, upstream) : null;
-  const branchOid = branch ? await resolveCommit(fs, gitdir, cache, branch) : 
+  const branchOid = branch ? await resolveCommit(fs, gitdir, cache, branch) :
     await _resolveRef({ cache, fs, gitdir, ref: "HEAD" });
 
   if (!branchOid) {
@@ -180,7 +180,7 @@ export async function _rebaseContinue({
   gitdir: string;
 }): Promise<RebaseResult> {
   const state = await loadRebaseState(fs, gitdir);
-  
+
   if (!state) {
     throw new Error("No rebase in progress");
   }
@@ -210,7 +210,7 @@ export async function _rebaseAbort({
   gitdir: string;
 }): Promise<RebaseResult> {
   const state = await loadRebaseState(fs, gitdir);
-  
+
   if (!state) {
     throw new Error("No rebase in progress");
   }
@@ -243,7 +243,7 @@ export async function _rebaseSkip({
   gitdir: string;
 }): Promise<RebaseResult> {
   const state = await loadRebaseState(fs, gitdir);
-  
+
   if (!state) {
     throw new Error("No rebase in progress");
   }
@@ -282,7 +282,7 @@ async function executeRebase({
 }): Promise<RebaseResult> {
   while (state.current < state.todo.length) {
     const currentTodo = state.todo[state.current];
-    
+
     try {
       const result = await executeTodoItem({
         cache,
@@ -367,32 +367,41 @@ async function executeTodoItem({
   item: RebaseTodoItem;
 }): Promise<{ conflicts?: string[] }> {
   switch (item.command) {
-    case "pick":
+    case "pick": {
       return await executePick(cache, dir, fs, gitdir, item);
-      
-    case "reword":
+    }
+
+    case "reword": {
       return await executeReword(cache, dir, fs, gitdir, item);
-      
-    case "edit":
+    }
+
+    case "edit": {
       return await executeEdit(cache, dir, fs, gitdir, item);
-      
-    case "squash":
+    }
+
+    case "squash": {
       return await executeSquash(cache, dir, fs, gitdir, item);
-      
-    case "fixup":
+    }
+
+    case "fixup": {
       return await executeFixup(cache, dir, fs, gitdir, item);
-      
-    case "exec":
+    }
+
+    case "exec": {
       return await executeExec(cache, dir, fs, gitdir, item);
-      
-    case "break":
+    }
+
+    case "break": {
       return await executeBreak(cache, dir, fs, gitdir, state);
-      
-    case "drop":
+    }
+
+    case "drop": {
       return {}; // Do nothing for drop
-      
-    default:
+    }
+
+    default: {
       throw new Error(`Unsupported rebase command: ${item.command}`);
+    }
   }
 }
 
@@ -412,13 +421,16 @@ async function executePick(
       dir,
       fs,
       gitdir,
-      oid: item.commit,
-      noCommit: false
+      noCommit: false,
+      oid: item.commit
     });
+
     return {};
-  } catch (error) {
+  } catch {
     // Check for conflicts
-    return { conflicts: [item.commit] };
+    return {
+      conflicts: [item.commit]
+    };
   }
 }
 
@@ -434,10 +446,10 @@ async function executeReword(cache: Cache, dir: string, fs: FileSystem, gitdir: 
       dir,
       fs,
       gitdir,
-      oid: item.commit,
-      noCommit: true
+      noCommit: true,
+      oid: item.commit
     });
-    
+
     // Get the original commit info
     const { object } = await _readObject({
       cache,
@@ -445,28 +457,28 @@ async function executeReword(cache: Cache, dir: string, fs: FileSystem, gitdir: 
       gitdir,
       oid: item.commit
     });
+
     const commit = GitCommit.from(object);
-    
     // Use rewritten message from todo item if provided, otherwise original message
     const message = item.message || commit.message;
-    
+
     // Create new commit with potentially edited message
     const newCommit = await _writeCommit({
-      fs: fs as any,
-      gitdir,
       commit: {
-        tree: commit.tree,
-        parent: [await _resolveRef({ cache, fs, gitdir, ref: "HEAD" })],
         author: commit.author,
         committer: {
           ...commit.committer,
           timestamp: Math.floor(Date.now() / 1000),
           timezoneOffset: new Date().getTimezoneOffset()
         },
-        message
-      }
+        message: String(message),
+        parent: [String(await _resolveRef({ cache, fs, gitdir, ref: "HEAD" }))],
+        tree: commit.tree
+      },
+      fs: fs as any,
+      gitdir
     });
-    
+
     // Update HEAD to new commit
     await _writeRef({
       fs,
@@ -474,10 +486,12 @@ async function executeReword(cache: Cache, dir: string, fs: FileSystem, gitdir: 
       ref: "HEAD",
       value: newCommit
     });
-    
+
     return {};
-  } catch (error) {
-    return { conflicts: [item.commit] };
+  } catch {
+    return {
+      conflicts: [item.commit]
+    };
   }
 }
 
@@ -490,15 +504,15 @@ async function executeEdit(cache: Cache, dir: string, fs: FileSystem, gitdir: st
       dir,
       fs,
       gitdir,
-      oid: item.commit,
-      noCommit: true
+      noCommit: true,
+      oid: item.commit
     });
-    
+
     // For edit operations, we stop here and let the user manually make changes
     // In a real interactive rebase, this would pause the process and wait for user to continue
     // For this implementation, we'll just apply the commit as-is
     // but in practice, the user would run `git rebase --continue` after making edits
-    
+
     // Get the original commit info
     const { object } = await _readObject({
       cache,
@@ -506,36 +520,39 @@ async function executeEdit(cache: Cache, dir: string, fs: FileSystem, gitdir: st
       gitdir,
       oid: item.commit
     });
+
     const commit = GitCommit.from(object);
-    
+
     // Create new commit (user would normally amend this)
     const newCommit = await _writeCommit({
-      fs: fs as any,
-      gitdir,
       commit: {
-        tree: commit.tree,
-        parent: [await _resolveRef({ cache, fs, gitdir, ref: "HEAD" })],
         author: commit.author,
         committer: {
           ...commit.committer,
           timestamp: Math.floor(Date.now() / 1000),
           timezoneOffset: new Date().getTimezoneOffset()
         },
-        message: commit.message
-      }
+        message: String(commit.message),
+        parent: [String(await _resolveRef({ cache, fs, gitdir, ref: "HEAD" }))],
+        tree: commit.tree
+      },
+      fs: fs as any,
+      gitdir
     });
-    
+
     // Update HEAD to new commit
     await _writeRef({
       fs,
       gitdir,
-      ref: "HEAD", 
+      ref: "HEAD",
       value: newCommit
     });
-    
+
     return {};
-  } catch (error) {
-    return { conflicts: [item.commit] };
+  } catch {
+    return {
+      conflicts: [item.commit]
+    };
   }
 }
 
@@ -548,20 +565,22 @@ async function executeSquash(cache: Cache, dir: string, fs: FileSystem, gitdir: 
       dir,
       fs,
       gitdir,
-      oid: item.commit,
-      noCommit: true
+      noCommit: true,
+      oid: item.commit
     });
-    
+
     // Get the current HEAD commit (previous commit)
     const headOid = await _resolveRef({ cache, fs, gitdir, ref: "HEAD" });
+
     const { object: headObject } = await _readObject({
       cache,
       fs: fs as any,
       gitdir,
-      oid: headOid
+      oid: String(headOid)
     });
+
     const headCommit = GitCommit.from(headObject);
-    
+
     // Get the squash commit info
     const { object: squashObject } = await _readObject({
       cache,
@@ -569,28 +588,28 @@ async function executeSquash(cache: Cache, dir: string, fs: FileSystem, gitdir: 
       gitdir,
       oid: item.commit
     });
+
     const squashCommit = GitCommit.from(squashObject);
-    
     // Combine commit messages
     const combinedMessage = `${headCommit.message}\n\n${squashCommit.message}`;
-    
+
     // Create a new commit that replaces the previous one, combining both changes
     const newCommit = await _writeCommit({
-      fs: fs as any,
-      gitdir,
       commit: {
-        tree: squashCommit.tree, // Use the tree after applying squash changes
-        parent: headCommit.parent, // Use the parent of the original commit
         author: headCommit.author, // Keep original author
         committer: {
           ...headCommit.committer,
           timestamp: Math.floor(Date.now() / 1000),
           timezoneOffset: new Date().getTimezoneOffset()
         },
-        message: combinedMessage
-      }
+        message: combinedMessage,
+        parent: headCommit.parent, // Use the parent of the original commit
+        tree: squashCommit.tree // Use the tree after applying squash changes
+      },
+      fs: fs as any,
+      gitdir
     });
-    
+
     // Update HEAD to new combined commit
     await _writeRef({
       fs,
@@ -598,10 +617,12 @@ async function executeSquash(cache: Cache, dir: string, fs: FileSystem, gitdir: 
       ref: "HEAD",
       value: newCommit
     });
-    
+
     return {};
-  } catch (error) {
-    return { conflicts: [item.commit] };
+  } catch {
+    return {
+      conflicts: [item.commit]
+    };
   }
 }
 
@@ -614,20 +635,22 @@ async function executeFixup(cache: Cache, dir: string, fs: FileSystem, gitdir: s
       dir,
       fs,
       gitdir,
-      oid: item.commit,
-      noCommit: true
+      noCommit: true,
+      oid: item.commit
     });
-    
+
     // Get the current HEAD commit (previous commit)
     const headOid = await _resolveRef({ cache, fs, gitdir, ref: "HEAD" });
+
     const { object: headObject } = await _readObject({
       cache,
       fs: fs as any,
       gitdir,
-      oid: headOid
+      oid: String(headOid)
     });
+
     const headCommit = GitCommit.from(headObject);
-    
+
     // Get the fixup commit info (for tree)
     const { object: fixupObject } = await _readObject({
       cache,
@@ -635,26 +658,27 @@ async function executeFixup(cache: Cache, dir: string, fs: FileSystem, gitdir: s
       gitdir,
       oid: item.commit
     });
+
     const fixupCommit = GitCommit.from(fixupObject);
-    
+
     // Create a new commit that replaces the previous one with combined changes
     // but keeps only the original commit message (discard fixup message)
     const newCommit = await _writeCommit({
-      fs: fs as any,
-      gitdir,
       commit: {
-        tree: fixupCommit.tree, // Use the tree after applying fixup changes
-        parent: headCommit.parent, // Use the parent of the original commit
         author: headCommit.author, // Keep original author
         committer: {
           ...headCommit.committer,
           timestamp: Math.floor(Date.now() / 1000),
           timezoneOffset: new Date().getTimezoneOffset()
         },
-        message: headCommit.message // Keep only the original message
-      }
+        message: String(headCommit.message), // Keep only the original message
+        parent: headCommit.parent, // Use the parent of the original commit
+        tree: fixupCommit.tree // Use the tree after applying fixup changes
+      },
+      fs: fs as any,
+      gitdir
     });
-    
+
     // Update HEAD to new combined commit
     await _writeRef({
       fs,
@@ -662,21 +686,23 @@ async function executeFixup(cache: Cache, dir: string, fs: FileSystem, gitdir: s
       ref: "HEAD",
       value: newCommit
     });
-    
+
     return {};
-  } catch (error) {
-    return { conflicts: [item.commit] };
+  } catch {
+    return {
+      conflicts: [item.commit]
+    };
   }
 }
 
-async function executeExec(cache: Cache, dir: string, fs: FileSystem, gitdir: string, item: RebaseTodoItem) {
-  const command = item.message.trim();
-  
+async function executeExec(_cache: Cache, dir: string, _fs: FileSystem, _gitdir: string, item: RebaseTodoItem) {
+  const command = String(item.message).trim();
+
   if (!command) {
     return {
       conflicts: [],
-      success: false,
-      message: "No command specified for exec"
+      message: "No command specified for exec",
+      success: false
     };
   }
 
@@ -685,56 +711,55 @@ async function executeExec(cache: Cache, dir: string, fs: FileSystem, gitdir: st
     const process = new Deno.Command("sh", {
       args: ["-c", command],
       cwd: dir,
-      stdout: "piped",
-      stderr: "piped"
+      stderr: "piped",
+      stdout: "piped"
     });
 
-    const { code, stdout, stderr } = await process.output();
-    
+    const { code, stderr, stdout } = await process.output();
+
     // Convert output to strings
     const stdoutText = new TextDecoder().decode(stdout);
     const stderrText = new TextDecoder().decode(stderr);
-    
+
     // Log output for user visibility
-    if (stdoutText) {
+    if (stdoutText)
       console.log(stdoutText);
-    }
-    if (stderrText) {
+
+    if (stderrText)
       console.error(stderrText);
-    }
 
     if (code === 0) {
       return {
         conflicts: [],
-        success: true,
-        message: `Successfully executed: ${command}`
+        message: `Successfully executed: ${command}`,
+        success: true
       };
     } else {
       return {
         conflicts: [],
-        success: false,
-        message: `Command failed with exit code ${code}: ${command}`
+        message: `Command failed with exit code ${code}: ${command}`,
+        success: false
       };
     }
 
   } catch (error) {
     return {
       conflicts: [],
-      success: false,
-      message: `Failed to execute command: ${(error as Error).message}`
+      message: `Failed to execute command: ${(error as Error).message}`,
+      success: false
     };
   }
 }
 
-async function executeBreak(cache: Cache, dir: string, fs: FileSystem, gitdir: string, state: RebaseState) {
+async function executeBreak(_cache: Cache, _dir: string, fs: FileSystem, gitdir: string, state: RebaseState) {
   // Save current rebase state to allow resumption
   await saveRebaseState(fs, gitdir, state);
-  
+
   return {
     conflicts: [],
-    success: true,
+    message: "Rebase paused at break command. Use 'git rebase --continue' to resume.",
     paused: true, // Special flag to indicate rebase should pause
-    message: "Rebase paused at break command. Use 'git rebase --continue' to resume."
+    success: true
   };
 }
 
@@ -744,96 +769,91 @@ async function executeBreak(cache: Cache, dir: string, fs: FileSystem, gitdir: s
 
 async function resolveCommit(fs: FileSystem, gitdir: string, cache: Cache, ref: string): Promise<string> {
   const oid = await _resolveRef({ cache, fs, gitdir, ref });
-  if (!oid) {
+  if (!oid)
     throw new NotFoundError(ref);
-  }
+
   return oid;
 }
 
 async function getCommitRange({
-  fs,
-  gitdir,
   cache,
   from,
+  fs,
+  gitdir,
   to
 }: {
-  fs: FileSystem;
-  gitdir: string;
   cache: Cache;
   from: string;
+  fs: FileSystem;
+  gitdir: string;
+
   to: string;
 }): Promise<Array<{ oid: string; message: string }>> {
   // Implement proper commit range walking
   const commits: Array<{ oid: string; message: string }> = [];
-  
+
   try {
     // Resolve the 'to' and 'from' references to commit OIDs
     const toOid = await _resolveRef({ cache, fs, gitdir, ref: to });
     const fromOid = await _resolveRef({ cache, fs, gitdir, ref: from });
-    
-    if (!toOid || !fromOid) {
+
+    if (!toOid || !fromOid)
       return commits;
-    }
-    
+
     // Walk backwards from 'to' until we reach 'from' (or a common ancestor)
     const visited = new Set<string>();
     const stack = [toOid];
-    
+
     while (stack.length > 0) {
       const currentOid = stack.pop()!;
-      
+
       // Skip if we've already processed this commit
-      if (visited.has(currentOid)) {
+      if (visited.has(currentOid))
         continue;
-      }
+
       visited.add(currentOid);
-      
+
       // Stop if we've reached the 'from' commit (don't include it)
-      if (currentOid === fromOid) {
+      if (currentOid === fromOid)
         break;
-      }
-      
+
       try {
         // Get the commit object
-        const { type, object } = await _readObject({
+        const { object, type } = await _readObject({
           cache,
           fs: fs as any,
           gitdir,
           oid: currentOid
         });
-        
-        if (type !== "commit") {
+
+        if (type !== "commit")
           continue;
-        }
-        
+
         const commit = GitCommit.from(object);
-        
+
         // Add this commit to our list (in reverse chronological order)
         commits.push({
-          oid: currentOid,
-          message: commit.message
+          message: String(commit.message),
+          oid: currentOid
         });
-        
+
         // Add parent commits to the stack for processing
         for (const parentOid of commit.parent) {
-          if (!visited.has(parentOid)) {
+          if (!visited.has(parentOid))
             stack.push(parentOid);
-          }
         }
-        
-      } catch (error) {
+      } catch {
         // Skip commits we can't read
         continue;
       }
     }
-    
+
     // Reverse the commits to get them in chronological order (oldest first)
     // This is the order they should be applied during rebase
     commits.reverse();
-    
+
     return commits;
-    
-  } catch (error) {
+  } catch {
     // If we can't resolve refs or walk commits, return empty array
     return [];
   }
@@ -843,11 +863,11 @@ async function getCurrentBranchName(fs: FileSystem, gitdir: string): Promise<str
   try {
     const head = await fs.readFile(join(gitdir, "HEAD"));
     const headText = new TextDecoder().decode(head);
-    
+
     if (headText.startsWith("ref: ")) {
       return headText.slice(5).trim();
     }
-    
+
     return "HEAD"; // Detached HEAD
   } catch {
     return "HEAD";
@@ -887,23 +907,23 @@ async function checkoutCommit({
 
 async function saveRebaseState(fs: FileSystem, gitdir: string, state: RebaseState): Promise<void> {
   const rebaseDir = join(gitdir, REBASE_PATHS.DIR);
-  
+
   // Create rebase directory
   await fs.mkdir(rebaseDir, { recursive: true });
-  
+
   // Save state files
   await fs.writeFile(join(rebaseDir, REBASE_PATHS.ONTO), new TextEncoder().encode(state.onto));
   await fs.writeFile(join(rebaseDir, REBASE_PATHS.ORIG_HEAD), new TextEncoder().encode(state.orig_head));
   await fs.writeFile(join(rebaseDir, REBASE_PATHS.HEAD_NAME), new TextEncoder().encode(state.head_name));
-  
+
   if (state.interactive) {
     await fs.writeFile(join(rebaseDir, REBASE_PATHS.INTERACTIVE), new TextEncoder().encode(""));
   }
-  
+
   // Save todo list
   const todoText = formatRebaseTodo(state.todo.slice(state.current));
   await fs.writeFile(join(rebaseDir, REBASE_PATHS.TODO), new TextEncoder().encode(todoText));
-  
+
   // Save done list
   const doneItems = state.todo.slice(0, state.current);
   const doneText = formatRebaseTodo(doneItems);
@@ -912,21 +932,21 @@ async function saveRebaseState(fs: FileSystem, gitdir: string, state: RebaseStat
 
 async function loadRebaseState(fs: FileSystem, gitdir: string): Promise<RebaseState | null> {
   const rebaseDir = join(gitdir, REBASE_PATHS.DIR);
-  
+
   try {
     const onto = new TextDecoder().decode(await fs.readFile(join(rebaseDir, REBASE_PATHS.ONTO)));
     const origHead = new TextDecoder().decode(await fs.readFile(join(rebaseDir, REBASE_PATHS.ORIG_HEAD)));
     const headName = new TextDecoder().decode(await fs.readFile(join(rebaseDir, REBASE_PATHS.HEAD_NAME)));
-    
+
     const interactive = await fs.exists?.(join(rebaseDir, REBASE_PATHS.INTERACTIVE)) ?? false;
-    
+
     // Load todo and done lists
     const todoText = new TextDecoder().decode(await fs.readFile(join(rebaseDir, REBASE_PATHS.TODO)));
     const doneText = new TextDecoder().decode(await fs.readFile(join(rebaseDir, REBASE_PATHS.DONE)));
-    
+
     const todoItems = parseRebaseTodo(todoText);
     const doneItems = parseRebaseTodo(doneText);
-    
+
     return {
       onto,
       orig_head: origHead,
@@ -942,7 +962,7 @@ async function loadRebaseState(fs: FileSystem, gitdir: string): Promise<RebaseSt
 
 async function cleanupRebaseState(fs: FileSystem, gitdir: string): Promise<void> {
   const rebaseDir = join(gitdir, REBASE_PATHS.DIR);
-  
+
   try {
     await fs.rmdir(rebaseDir, { recursive: true });
   } catch {

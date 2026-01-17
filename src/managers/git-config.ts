@@ -97,7 +97,7 @@ export class GitConfigManager {
 
     // System config (lowest priority) - comprehensive detection
     const systemPaths = this._getSystemConfigPaths();
-    
+
     for (const systemPath of systemPaths) {
       try {
         const exists = await fs.exists(systemPath);
@@ -109,7 +109,7 @@ export class GitConfigManager {
         // System paths may not be accessible, continue
       }
     }
-    
+
     // If no system config found, add placeholder for completeness
     if (!locations.some(loc => loc.scope === "system")) {
       locations.push({ exists: false, path: systemPaths[0], scope: "system" });
@@ -117,7 +117,7 @@ export class GitConfigManager {
 
     // Global config (medium priority) - comprehensive HOME detection
     const globalPath = this._getGlobalConfigPath();
-    
+
     try {
       const exists = await fs.exists(globalPath);
       locations.push({ exists, path: globalPath, scope: "global" });
@@ -143,9 +143,9 @@ export class GitConfigManager {
    */
   private static _getSystemConfigPaths(): string[] {
     const platform = Deno.build.os;
-    
+
     switch (platform) {
-      case "windows":
+      case "windows": {
         // Windows system config paths
         const programFiles = Deno.env.get("ProgramFiles") || "C:\\Program Files";
         const programFilesX86 = Deno.env.get("ProgramFiles(x86)") || "C:\\Program Files (x86)";
@@ -155,8 +155,9 @@ export class GitConfigManager {
           "C:\\etc\\gitconfig",
           "C:\\gitconfig"
         ];
-        
-      case "darwin":
+      }
+
+      case "darwin": {
         // macOS system config paths
         return [
           "/usr/local/etc/gitconfig",     // Homebrew git
@@ -164,8 +165,9 @@ export class GitConfigManager {
           "/etc/gitconfig",               // System git
           "/Library/Application Support/Git/config"  // macOS GUI apps
         ];
-        
-      default:
+      }
+
+      default: {
         // Linux/Unix system config paths
         const prefix = Deno.env.get("GIT_CONFIG_SYSTEM") || "/etc/gitconfig";
         return [
@@ -174,6 +176,7 @@ export class GitConfigManager {
           "/etc/git/gitconfig",
           "/etc/gitconfig"
         ];
+      }
     }
   }
 
@@ -182,25 +185,25 @@ export class GitConfigManager {
    */
   private static _getGlobalConfigPath(): string {
     const platform = Deno.build.os;
-    
+
     if (platform === "windows") {
       // Windows: Use USERPROFILE or HOMEDRIVE+HOMEPATH
       const userProfile = Deno.env.get("USERPROFILE");
       if (userProfile) {
         return join(userProfile, ".gitconfig");
       }
-      
+
       const homeDrive = Deno.env.get("HOMEDRIVE") || "C:";
       const homePath = Deno.env.get("HOMEPATH") || "\\Users\\Default";
       return join(homeDrive + homePath, ".gitconfig");
     }
-    
+
     // Unix-like systems: Use HOME or fallback
     const home = Deno.env.get("HOME");
     if (home) {
       return join(home, ".gitconfig");
     }
-    
+
     // Fallback for systems without HOME
     const user = Deno.env.get("USER") || Deno.env.get("USERNAME") || "unknown";
     if (platform === "darwin") {

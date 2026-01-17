@@ -4,11 +4,13 @@
 //// util
 
 import { _readCommit } from "./read-commit.ts";
+import { _readTree } from "./read-tree.ts";
 import { adaptFsInterface } from "../utils/fs-adapter.ts";
 import { compareAge } from "../utils/compare-age.ts";
 import { GitRefManager } from "../managers/git-ref.ts";
 import { GitShallowManager } from "../managers/git-shallow.ts";
 import { resolveFilepath } from "../utils/resolve-filepath.ts";
+import { FileSystem } from "../models/file-system.ts";
 
 import type { Cache, FsInterface, ReadCommitResult } from "../types.ts";
 
@@ -103,7 +105,7 @@ export async function* _logGenerator({
             targetOid: lastFileOid,
             originalPath: filepath
           });
-          
+
           if (renamedPath) {
             // Update filepath to follow the rename
             filepath = renamedPath;
@@ -120,7 +122,7 @@ export async function* _logGenerator({
 
     commitsCount.count++;
     yield commit; /*** Yield each commit as we process it ***/
-    
+
     // Update lastCommit for file following
     lastCommit = commit;
 
@@ -145,11 +147,11 @@ export async function* _logGenerator({
  * Detect if a file was renamed between two commits by comparing file OIDs
  */
 async function detectFileRename({
-  cache,
+  // cache,
   fs,
   gitdir,
   fromCommit,
-  toCommit,
+  // toCommit,
   targetOid,
   originalPath
 }: {
@@ -164,24 +166,22 @@ async function detectFileRename({
   try {
     // Get trees for both commits
     const fromTree = await _readTree({ fs, gitdir, oid: fromCommit.tree });
-    const toTree = await _readTree({ fs, gitdir, oid: toCommit.tree });
-    
+    // const toTree = await _readTree({ fs, gitdir, oid: toCommit.tree });
+
     // Flatten both trees to get all file paths and OIDs
     const fromFiles = await flattenTreeForRename(fromTree, fs, gitdir);
-    const toFiles = await flattenTreeForRename(toTree, fs, gitdir);
-    
+    // const toFiles = await flattenTreeForRename(toTree, fs, gitdir);
+
     // Find files with the target OID in the 'from' commit
     const candidatePaths: string[] = [];
     for (const [path, oid] of fromFiles) {
-      if (oid === targetOid && path !== originalPath) {
+      if (oid === targetOid && path !== originalPath)
         candidatePaths.push(path);
-      }
     }
-    
+
     // Return the first candidate (simple heuristic)
     // In a more sophisticated implementation, we'd use similarity scoring
     return candidatePaths[0] || null;
-    
   } catch {
     return null;
   }
@@ -197,10 +197,10 @@ async function flattenTreeForRename(
   prefix = ""
 ): Promise<Map<string, string>> {
   const files = new Map<string, string>();
-  
+
   for (const entry of tree.entries()) {
     const filepath = prefix ? `${prefix}/${entry.path}` : entry.path;
-    
+
     if (entry.type === "tree") {
       const subtree = await _readTree({ fs, gitdir, oid: entry.oid });
       const subFiles = await flattenTreeForRename(subtree, fs, gitdir, filepath);
@@ -211,7 +211,7 @@ async function flattenTreeForRename(
       files.set(filepath, entry.oid);
     }
   }
-  
+
   return files;
 }
 

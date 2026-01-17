@@ -3,7 +3,6 @@
  */
 
 import { _diff } from "../commands/diff.ts";
-import { adaptFileSystem } from "../utils/fs-adapter.ts";
 import { assertParameter } from "../utils/assert-parameter.ts";
 import { DiffOptions, DiffResult } from "../models/git-diff.ts";
 import { FileSystem } from "../models/file-system.ts";

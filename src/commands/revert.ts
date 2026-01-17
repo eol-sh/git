@@ -5,13 +5,15 @@
 
 import { _cherryPick } from "../commands/cherry-pick.ts";
 import { _readObject } from "../storage/read-object.ts";
+import { _readTree } from "../commands/read-tree.ts";
 import { _resolveRef } from "../commands/resolve-ref.ts";
 import { _writeObject } from "../storage/write-object.ts";
 import { FileSystem } from "../models/file-system.ts";
+import { GitCommit } from "../models/git-commit.ts";
 import { GitIndexManager } from "../managers/git-index.ts";
 import { GitRefManager } from "../managers/git-ref.ts";
-import { createPatch, applyPatch } from "../utils/apply-patch.ts";
-import { join } from "../utils/join.ts";
+// import { createPatch, applyPatch } from "../utils/apply-patch.ts";
+// import { join } from "../utils/join.ts";
 import { NotFoundError } from "../errors/not-found.ts";
 import { ObjectTypeError } from "../errors/object-type.ts";
 
@@ -58,17 +60,17 @@ export async function _revert({
 }: RevertOptions): Promise<string | null> {
   // Resolve the commit to revert
   const commitOid = await _resolveRef({ cache, fs, gitdir, ref: oid }) || oid;
-  
+
   // Verify it's a commit
   const { type, object } = await _readObject({ fs: fs as any, gitdir, oid: commitOid });
-  
+
   if (type !== "commit") {
     throw new ObjectTypeError(commitOid, type || "unknown", "commit");
   }
-  
+
   // Parse commit
   const commitInfo = parseCommit(object);
-  
+
   // Handle merge commits
   if (commitInfo.parent.length > 1 && mainline === undefined) {
     throw new Error(
@@ -76,23 +78,23 @@ export async function _revert({
       `Please specify which parent to use with --mainline <parent-number>`
     );
   }
-  
+
   // For revert, we want to apply the inverse of the commit
   // This means we cherry-pick from the commit TO its parent (reverse direction)
-  
+
   const parentIndex = mainline ? mainline - 1 : 0;
   const parentOid = commitInfo.parent[parentIndex];
-  
+
   if (!parentOid) {
     throw new Error(`Cannot revert root commit ${commitOid}`);
   }
-  
+
   // Get current HEAD
   const headOid = await _resolveRef({ cache, fs, gitdir, ref: "HEAD" });
   if (!headOid) {
     throw new NotFoundError("HEAD");
   }
-  
+
   // Create a reverse patch (from commit back to parent)
   const reversePatch = await createReversePatch({
     cache,
@@ -101,7 +103,7 @@ export async function _revert({
     fromOid: commitOid,
     toOid: parentOid
   });
-  
+
   // Apply the reverse patch to the current state
   const conflicts = await applyReversePatch({
     cache,
@@ -110,38 +112,38 @@ export async function _revert({
     gitdir,
     patch: reversePatch
   });
-  
+
   // If there are conflicts, don't commit
   if (conflicts.length > 0) {
     console.error(`Revert resulted in conflicts in: ${conflicts.join(", ")}`);
     return null;
   }
-  
+
   // Create commit unless --no-commit
   if (!noCommit) {
     // Prepare commit message
     const defaultMessage = `Revert "${commitInfo.message.split("\n")[0]}"\n\n` +
       `This reverts commit ${commitOid}.`;
     const commitMessage = message || defaultMessage;
-    
+
     // Set author and committer
     const now = Math.floor(Date.now() / 1000);
     const offset = new Date().getTimezoneOffset();
-    
+
     const commitAuthor = author || {
       name: process.env.GIT_AUTHOR_NAME || "Unknown",
       email: process.env.GIT_AUTHOR_EMAIL || "unknown@example.com",
       timestamp: now,
       timezoneOffset: offset
     };
-    
+
     const commitCommitter = committer || {
       name: process.env.GIT_COMMITTER_NAME || commitAuthor.name,
       email: process.env.GIT_COMMITTER_EMAIL || commitAuthor.email,
       timestamp: now,
       timezoneOffset: offset
     };
-    
+
     // Create the revert commit
     const newCommit = await createRevertCommit({
       cache,
@@ -152,7 +154,7 @@ export async function _revert({
       author: commitAuthor,
       committer: commitCommitter
     });
-    
+
     // Update HEAD
     await GitRefManager.writeRef({
       fs: fs as any,
@@ -160,10 +162,10 @@ export async function _revert({
       ref: "HEAD",
       value: newCommit
     });
-    
+
     return newCommit;
   }
-  
+
   return null;
 }
 
@@ -179,7 +181,7 @@ function parseCommit(object: Uint8Array): {
 } {
   const text = new TextDecoder().decode(object);
   const lines = text.split("\n");
-  
+
   const result = {
     tree: "",
     parent: [] as string[],
@@ -187,17 +189,17 @@ function parseCommit(object: Uint8Array): {
     committer: "",
     message: ""
   };
-  
+
   let messageStart = 0;
-  
+
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i];
-    
+
     if (line === "") {
       messageStart = i + 1;
       break;
     }
-    
+
     if (line.startsWith("tree ")) {
       result.tree = line.slice(5);
     } else if (line.startsWith("parent ")) {
@@ -208,11 +210,11 @@ function parseCommit(object: Uint8Array): {
       result.committer = line.slice(10);
     }
   }
-  
+
   if (messageStart > 0) {
     result.message = lines.slice(messageStart).join("\n").trim();
   }
-  
+
   return result;
 }
 
@@ -220,7 +222,7 @@ function parseCommit(object: Uint8Array): {
  * Create a reverse patch (from commit to parent)
  */
 async function createReversePatch({
-  cache,
+  // cache,
   fs,
   gitdir,
   fromOid,
@@ -235,22 +237,22 @@ async function createReversePatch({
   // Get trees for both commits
   const fromCommit = await GitCommit.from({ fs: fs as any, gitdir, oid: fromOid });
   const toCommit = await GitCommit.from({ fs: fs as any, gitdir, oid: toOid });
-  
+
   const fromTree = await _readTree({ fs, gitdir, oid: fromCommit.tree });
   const toTree = await _readTree({ fs, gitdir, oid: toCommit.tree });
-  
+
   // Get file lists from both trees
   const fromFiles = await flattenTree(fromTree, fs, gitdir);
   const toFiles = await flattenTree(toTree, fs, gitdir);
-  
+
   // Build reverse patch - from 'to' back to 'from'
   const files = [];
   const allPaths = new Set([...fromFiles.keys(), ...toFiles.keys()]);
-  
+
   for (const filepath of allPaths) {
     const fromFile = fromFiles.get(filepath);
     const toFile = toFiles.get(filepath);
-    
+
     if (!fromFile && toFile) {
       // File was added in fromOid, so delete it in reverse
       files.push({
@@ -283,7 +285,7 @@ async function createReversePatch({
       });
     }
   }
-  
+
   return { files };
 }
 
@@ -297,10 +299,10 @@ async function flattenTree(
   prefix = ""
 ): Promise<Map<string, { oid: string; mode: string }>> {
   const files = new Map();
-  
+
   for (const entry of tree.entries()) {
     const filepath = prefix ? `${prefix}/${entry.path}` : entry.path;
-    
+
     if (entry.type === "tree") {
       // Recursively flatten subtree
       const subtree = await _readTree({ fs, gitdir, oid: entry.oid });
@@ -312,7 +314,7 @@ async function flattenTree(
       files.set(filepath, { oid: entry.oid, mode: entry.mode });
     }
   }
-  
+
   return files;
 }
 
@@ -333,22 +335,22 @@ async function applyReversePatch({
   patch: any;
 }): Promise<string[]> {
   const conflicts: string[] = [];
-  
+
   // Apply reverse patch to working directory and index
   await GitIndexManager.acquire(
     { cache, fs: fs as any, gitdir },
     async (index) => {
       for (const file of patch.files) {
         const filepath = `${dir}/${file.filepath}`;
-        
+
         try {
           if (file.status === 'add') {
             // File was added in original commit, so add it back in revert
             if (file.newOid && file.newMode) {
-              const { object } = await _readObject({ 
-                fs: fs as any, 
-                gitdir, 
-                oid: file.newOid 
+              const { object } = await _readObject({
+                fs: fs as any,
+                gitdir,
+                oid: file.newOid
               });
               await fs.writeFile(filepath, object);
               const stats = await fs.lstat(filepath);
@@ -365,10 +367,10 @@ async function applyReversePatch({
           } else if (file.status === 'modify') {
             // File was modified in original commit, so restore to previous state
             if (file.newOid && file.newMode) {
-              const { object } = await _readObject({ 
-                fs: fs as any, 
-                gitdir, 
-                oid: file.newOid 
+              const { object } = await _readObject({
+                fs: fs as any,
+                gitdir,
+                oid: file.newOid
               });
               await fs.writeFile(filepath, object);
               const stats = await fs.lstat(filepath);
@@ -383,7 +385,7 @@ async function applyReversePatch({
       }
     }
   );
-  
+
   return conflicts;
 }
 
@@ -409,7 +411,7 @@ async function createRevertCommit({
 }): Promise<string> {
   // Write tree from current index
   let treeOid = "";
-  
+
   await GitIndexManager.acquire(
     { cache, fs: fs as any, gitdir },
     async (index) => {
@@ -417,7 +419,7 @@ async function createRevertCommit({
       treeOid = await index.writeTree({ fs: fs as any, gitdir });
     }
   );
-  
+
   // Format commit object
   const lines = [
     `tree ${treeOid}`,
@@ -427,9 +429,9 @@ async function createRevertCommit({
     "",
     message
   ];
-  
+
   const commitText = lines.join("\n");
-  
+
   // Write commit object
   return await _writeObject({
     fs: fs as any,

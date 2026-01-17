@@ -17,7 +17,7 @@ import { NotFoundError } from "../errors/not-found.ts";
 import { ObjectTypeError } from "../errors/object-type.ts";
 import { resolveFilepath } from "../utils/resolve-filepath.ts";
 
-import type { Cache, FsInterface } from "../types.ts";
+import type { Cache } from "../types.ts";
 
 export type ResetMode = "soft" | "mixed" | "hard";
 
@@ -33,7 +33,7 @@ interface ResetCommandOptions {
 
 /**
  * Internal reset command - reset HEAD and optionally index/working tree
- * 
+ *
  * Modes:
  * - soft: Only move HEAD, leave index and working tree unchanged
  * - mixed: Move HEAD and reset index, leave working tree unchanged (default)
@@ -50,25 +50,25 @@ export async function _reset({
 }: ResetCommandOptions): Promise<void> {
   // Resolve the target commit
   const targetOid = await _resolveRef({ cache, fs, gitdir, ref });
-  
+
   if (!targetOid) {
     throw new NotFoundError(ref);
   }
 
   // Verify it's a commit
-  const { type, object } = await _readObject({ fs, gitdir, oid: targetOid });
-  
+  const { type } = await _readObject({ fs, gitdir, oid: targetOid });
+
   if (type !== "commit") {
     throw new ObjectTypeError(targetOid, type, "commit");
   }
 
   // Get current HEAD
-  const currentRef = await GitRefManager.resolve({ 
-    fs: fs as any, 
-    gitdir, 
-    ref: "HEAD",
-    depth: 2 
-  });
+  // const currentRef = await GitRefManager.resolve({
+  //   fs: fs as any,
+  //   gitdir,
+  //   ref: "HEAD",
+  //   depth: 2
+  // });
 
   // If filepath is specified, we're doing a path-specific reset (always mixed mode)
   if (filepath) {
@@ -85,31 +85,31 @@ export async function _reset({
 
   // Full reset - move HEAD
   const symbolic = await GitRefManager.isSymbolic({ fs: fs as any, gitdir, ref: "HEAD" });
-  
+
   if (symbolic) {
     // HEAD points to a branch, update the branch ref
-    const branch = await GitRefManager.resolve({ 
-      fs: fs as any, 
-      gitdir, 
+    const branch = await GitRefManager.resolve({
+      fs: fs as any,
+      gitdir,
       ref: "HEAD",
-      depth: 1 
+      depth: 1
     });
-    
-    await _writeRef({ 
-      fs, 
-      gitdir, 
-      ref: branch, 
+
+    await _writeRef({
+      fs,
+      gitdir,
+      ref: branch,
       value: targetOid,
-      force: true 
+      force: true
     });
   } else {
     // Detached HEAD, update HEAD directly
-    await _writeRef({ 
-      fs, 
-      gitdir, 
-      ref: "HEAD", 
+    await _writeRef({
+      fs,
+      gitdir,
+      ref: "HEAD",
       value: targetOid,
-      force: true 
+      force: true
     });
   }
 
@@ -118,7 +118,7 @@ export async function _reset({
     case "soft":
       // Soft reset: only move HEAD, done above
       break;
-      
+
     case "mixed":
       // Mixed reset: move HEAD and reset index
       await resetIndex({
@@ -128,7 +128,7 @@ export async function _reset({
         targetOid
       });
       break;
-      
+
     case "hard":
       // Hard reset: move HEAD, reset index, and reset working tree
       await resetIndex({
@@ -137,7 +137,7 @@ export async function _reset({
         gitdir,
         targetOid
       });
-      
+
       await resetWorkingTree({
         cache,
         dir,
@@ -146,7 +146,7 @@ export async function _reset({
         targetOid
       });
       break;
-      
+
     default:
       throw new Error(`Invalid reset mode: ${mode}`);
   }
@@ -174,12 +174,12 @@ async function resetPaths({
   const { object: commitObject } = await _readObject({ fs, gitdir, oid: targetOid });
   const commitText = new TextDecoder().decode(commitObject);
   const treeMatch = commitText.match(/^tree ([0-9a-f]{40})/m);
-  
+
   if (!treeMatch) {
     throw new Error(`Invalid commit object: ${targetOid}`);
   }
-  
-  const treeOid = treeMatch[1];
+
+  // const treeOid = treeMatch[1];
 
   // Update index for each filepath
   await GitIndexManager.acquire(
@@ -188,7 +188,7 @@ async function resetPaths({
       for (const path of filepath) {
         // Remove current entry
         index.delete({ filepath: path });
-        
+
         try {
           // Resolve file in target tree
           const fileOid = await resolveFilepath({
@@ -198,7 +198,7 @@ async function resetPaths({
             gitdir,
             oid: targetOid
           });
-          
+
           if (fileOid) {
             // Get file stats from working directory if it matches
             let stats = {
@@ -211,10 +211,10 @@ async function resetPaths({
               size: 0,
               uid: 0
             };
-            
+
             const workdirPath = join(dir, path);
             const workdirStat = await fs.lstat(workdirPath);
-            
+
             if (workdirStat) {
               stats = {
                 ctime: workdirStat.ctime || new Date(),
@@ -227,12 +227,12 @@ async function resetPaths({
                 uid: workdirStat.uid || 0
               };
             }
-            
+
             // Add to index
-            index.insert({ 
-              filepath: path, 
+            index.insert({
+              filepath: path,
               oid: fileOid,
-              stats 
+              stats
             });
           }
         } catch {
@@ -261,11 +261,11 @@ async function resetIndex({
   const { object: commitObject } = await _readObject({ fs, gitdir, oid: targetOid });
   const commitText = new TextDecoder().decode(commitObject);
   const treeMatch = commitText.match(/^tree ([0-9a-f]{40})/m);
-  
+
   if (!treeMatch) {
     throw new Error(`Invalid commit object: ${targetOid}`);
   }
-  
+
   const treeOid = treeMatch[1];
   const tree = await _readTree({ fs, gitdir, oid: treeOid });
 
@@ -275,7 +275,7 @@ async function resetIndex({
     async (index) => {
       // Clear existing index
       index.clear();
-      
+
       // Add all entries from tree
       await addTreeToIndex(tree, index, "", { fs, gitdir });
     }
@@ -293,7 +293,7 @@ async function addTreeToIndex(
 ): Promise<void> {
   for (const entry of tree.entries()) {
     const filepath = prefix ? join(prefix, entry.path) : entry.path;
-    
+
     if (entry.type === "tree") {
       // Recursively process subtree
       const subtree = await _readTree({ fs, gitdir, oid: entry.oid });
@@ -322,7 +322,7 @@ async function addTreeToIndex(
  * Reset working tree to match a commit
  */
 async function resetWorkingTree({
-  cache,
+  // cache,
   dir,
   fs,
   gitdir,
@@ -338,20 +338,20 @@ async function resetWorkingTree({
   const { object: commitObject } = await _readObject({ fs, gitdir, oid: targetOid });
   const commitText = new TextDecoder().decode(commitObject);
   const treeMatch = commitText.match(/^tree ([0-9a-f]{40})/m);
-  
+
   if (!treeMatch) {
     throw new Error(`Invalid commit object: ${targetOid}`);
   }
-  
+
   const targetTreeOid = treeMatch[1];
   const targetTree = await _readTree({ fs, gitdir, oid: targetTreeOid });
-  
+
   // Get current files in working directory (excluding .git)
   const currentFiles = await walkWorkingDir(fs, dir);
-  
+
   // Get target files from commit tree
   const targetFiles = await getFilesFromTree(targetTree, fs, gitdir);
-  
+
   // Remove files that don't exist in target
   for (const currentFile of currentFiles) {
     if (!targetFiles.has(currentFile)) {
@@ -359,23 +359,23 @@ async function resetWorkingTree({
       await fs.rm(fullPath).catch(() => {});
     }
   }
-  
+
   // Add/update files from target tree
   for (const [filepath, { oid, mode }] of targetFiles) {
     const fullPath = join(dir, filepath);
-    
+
     // Ensure directory exists
     const dirPath = fullPath.substring(0, fullPath.lastIndexOf('/'));
     if (dirPath && dirPath !== dir) {
       await fs.mkdir(dirPath, { recursive: true }).catch(() => {});
     }
-    
+
     // Get file content from object store
     const { object } = await _readObject({ fs, gitdir, oid });
-    
+
     // Write file with correct permissions
     await fs.write(fullPath, object);
-    
+
     // Set file mode if supported
     try {
       await fs.chmod(fullPath, parseInt(mode, 8));
@@ -383,7 +383,7 @@ async function resetWorkingTree({
       // Chmod not supported on this platform
     }
   }
-  
+
   // Remove empty directories
   await removeEmptyDirectories(fs, dir);
 }
@@ -394,14 +394,14 @@ async function resetWorkingTree({
 async function walkWorkingDir(fs: FileSystem, dirPath: string, basePath = ""): Promise<string[]> {
   const files: string[] = [];
   const entries = await fs.readdir(dirPath).catch(() => []);
-  
+
   for (const entry of entries) {
     if (entry === ".git") continue;
-    
+
     const fullPath = join(dirPath, entry);
     const relativePath = basePath ? join(basePath, entry) : entry;
     const stat = await fs.lstat(fullPath).catch(() => null);
-    
+
     if (stat?.isDirectory()) {
       const subFiles = await walkWorkingDir(fs, fullPath, relativePath);
       files.push(...subFiles);
@@ -409,7 +409,7 @@ async function walkWorkingDir(fs: FileSystem, dirPath: string, basePath = ""): P
       files.push(relativePath);
     }
   }
-  
+
   return files;
 }
 
@@ -417,16 +417,16 @@ async function walkWorkingDir(fs: FileSystem, dirPath: string, basePath = ""): P
  * Get all files from a tree recursively
  */
 async function getFilesFromTree(
-  tree: GitTree, 
-  fs: FileSystem, 
+  tree: GitTree,
+  fs: FileSystem,
   gitdir: string,
   prefix = ""
 ): Promise<Map<string, { oid: string; mode: string }>> {
   const files = new Map<string, { oid: string; mode: string }>();
-  
+
   for (const entry of tree.entries()) {
     const filepath = prefix ? join(prefix, entry.path) : entry.path;
-    
+
     if (entry.type === "tree") {
       // Recursively process subtree
       const subtree = await _readTree({ fs, gitdir, oid: entry.oid });
@@ -438,7 +438,7 @@ async function getFilesFromTree(
       files.set(filepath, { oid: entry.oid, mode: entry.mode });
     }
   }
-  
+
   return files;
 }
 
@@ -447,16 +447,16 @@ async function getFilesFromTree(
  */
 async function removeEmptyDirectories(fs: FileSystem, dirPath: string): Promise<void> {
   const entries = await fs.readdir(dirPath).catch(() => []);
-  
+
   for (const entry of entries) {
     if (entry === ".git") continue;
-    
+
     const fullPath = join(dirPath, entry);
     const stat = await fs.lstat(fullPath).catch(() => null);
-    
+
     if (stat?.isDirectory()) {
       await removeEmptyDirectories(fs, fullPath);
-      
+
       // Try to remove directory if it's empty
       const subEntries = await fs.readdir(fullPath).catch(() => []);
       if (subEntries.length === 0) {

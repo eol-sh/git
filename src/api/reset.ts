@@ -3,7 +3,6 @@
  */
 
 import { _reset, ResetMode } from "../commands/reset.ts";
-import { adaptFileSystem } from "../utils/fs-adapter.ts";
 import { assertParameter } from "../utils/assert-parameter.ts";
 import { FileSystem } from "../models/file-system.ts";
 import { join } from "../utils/join.ts";

@@ -13,32 +13,27 @@ import type { PackageInfo } from "../types.ts";
  */
 async function getVersion(): Promise<string> {
   const fallbackVersion = "0.1.0";
-  
+
+  // Try to read from version.txt first
   try {
-    // Try to read from version.txt first
-    try {
-      const versionText = await Deno.readTextFile("version.txt");
-      const version = versionText.trim();
-      if (version) return version;
-    } catch {
-      // version.txt doesn't exist or isn't readable, continue to next option
-    }
-    
-    // Try to read from deno.json
-    try {
-      const denoConfigText = await Deno.readTextFile("deno.json");
-      const denoConfig = JSON.parse(denoConfigText);
-      if (denoConfig.version) return denoConfig.version;
-    } catch {
-      // deno.json doesn't exist or isn't readable, continue to fallback
-    }
-    
-    // Fall back to hardcoded version
-    return fallbackVersion;
+    const versionText = await Deno.readTextFile("version.txt");
+    const version = versionText.trim();
+    if (version) return version;
   } catch {
-    // If everything fails, use fallback
-    return fallbackVersion;
+    // version.txt doesn't exist or isn't readable, continue to next option
   }
+
+  // Try to read from deno.json
+  try {
+    const denoConfigText = await Deno.readTextFile("deno.json");
+    const denoConfig = JSON.parse(denoConfigText);
+    if (denoConfig.version) return denoConfig.version;
+  } catch {
+    // deno.json doesn't exist or isn't readable, continue to fallback
+  }
+
+  // Fall back to hardcoded version
+  return fallbackVersion;
 }
 
 // Initialize version dynamically
@@ -49,7 +44,7 @@ function getVersionSync(): string {
   if (_version !== null) {
     return _version;
   }
-  
+
   // If we haven't loaded version yet, start loading and return fallback
   if (_versionPromise === null) {
     _versionPromise = getVersion().then(v => {
@@ -57,7 +52,7 @@ function getVersionSync(): string {
       return v;
     });
   }
-  
+
   // Return fallback while loading
   return "0.1.0";
 }

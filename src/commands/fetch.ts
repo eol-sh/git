@@ -8,7 +8,7 @@ import { abbreviateRef } from "../utils/abbreviate-ref.ts";
 import { adaptFsInterface } from "../utils/fs-adapter.ts";
 import { collect } from "../utils/collect.ts";
 import { emptyPackfile } from "../utils/empty-packfile.ts";
-import { validatePackfileStream } from "../utils/validate-packfile-stream.ts";
+// import { validatePackfileStream } from "../utils/validate-packfile-stream.ts";
 import { saveStreamToFile } from "../utils/save-stream-to-file.ts";
 import { filterCapabilities } from "../utils/filter-capabilities.ts";
 import { GitCommit } from "../models/git-commit.ts";
@@ -405,7 +405,7 @@ export async function _fetch({
   // Enhanced packfile validation with streaming support
   let packfile: Uint8Array;
   let packfileSha: string;
-  
+
   if ((raw.body as any).error)
     throw (raw.body as any).error;
 
@@ -413,24 +413,24 @@ export async function _fetch({
   if (response.packfile && typeof (response.packfile as any).getReader === 'function') {
     // Direct stream-to-disk saving with validation
     const tempPath = join(gitdir, "objects/pack/temp-packfile");
-    
+
     try {
       const saveResult = await saveStreamToFile(
         fs as any,
         response.packfile as any,
         tempPath,
-        { 
+        {
           computeSha1: false,
           validateTrailingSha: true // Validates SHA and returns it
         }
       );
-      
+
       packfileSha = saveResult.sha1!;
-      
+
       // Read back for compatibility with existing index creation code
       // Note: This still uses some memory but much less than before during download
       packfile = await fs.read(tempPath) as Uint8Array;
-      
+
       // Clean up temp file
       await fs.rm(tempPath).catch(() => {});
     } catch (error) {
@@ -441,13 +441,13 @@ export async function _fetch({
   } else {
     // Fallback to original method for non-stream responses
     packfile = new Uint8Array(await collect(response.packfile as any));
-    
+
     if (packfile.length >= 20) {
       const expectedShaBytes = packfile.slice(-20);
       const expectedSha = Array.from(expectedShaBytes)
         .map((b) => b.toString(16).padStart(2, "0"))
         .join("");
-      
+
       // Validate packfile integrity
       const contentToHash = packfile.slice(0, -20);
       const hashBuffer = await crypto.subtle.digest("SHA-1", contentToHash);
@@ -455,11 +455,11 @@ export async function _fetch({
       const computedSha = Array.from(computedShaBytes)
         .map(b => b.toString(16).padStart(2, '0'))
         .join('');
-        
+
       if (computedSha !== expectedSha) {
         throw new InternalError(`Packfile validation failed: SHA checksum mismatch. Expected: ${expectedSha}, got: ${computedSha}`);
       }
-      
+
       packfileSha = expectedSha;
     } else {
       packfileSha = "";

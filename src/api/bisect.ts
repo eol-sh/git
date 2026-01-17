@@ -5,7 +5,7 @@
 import { _bisectStart, _bisectGood, _bisectBad, _bisectSkip, _bisectReset, _bisectLog, _bisectReplay, _bisectRun } from "../commands/bisect.ts";
 import { assertParameter } from "../utils/assert-parameter.ts";
 import { FileSystem } from "../models/file-system.ts";
-import { BisectRunResult, BisectSearchResult, BisectCommand } from "../models/bisect-state.ts";
+import { BisectRunResult, BisectSearchResult } from "../models/bisect-state.ts";
 import { join } from "../utils/join.ts";
 
 import type { Cache, FsClient } from "../types.ts";

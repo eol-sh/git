@@ -18,7 +18,7 @@ interface ResolveRefOptions {
  * Internal function to resolve a ref to its OID
  */
 export async function _resolveRef({
-  cache,
+  // cache,
   fs,
   gitdir,
   ref,
@@ -31,7 +31,7 @@ export async function _resolveRef({
       ref,
       depth
     });
-  } catch (err) {
+  } catch {
     // Return null if ref cannot be resolved
     return null;
   }

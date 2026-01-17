@@ -6,7 +6,7 @@
 import { _readObject } from "../storage/read-object.ts";
 import { _resolveRef } from "../commands/resolve-ref.ts";
 import { FileSystem } from "../models/file-system.ts";
-import { GitCommit } from "../models/git-commit.ts";
+// import { GitCommit } from "../models/git-commit.ts";
 import { GitTree } from "../models/git-tree.ts";
 import { NotFoundError } from "../errors/not-found.ts";
 // Inline abbreviate-oid utility
@@ -47,7 +47,7 @@ export async function _show({
     }
     objectOid = resolved;
   }
-  
+
   if (!objectOid) {
     objectOid = await _resolveRef({ cache, fs, gitdir, ref: "HEAD" });
     if (!objectOid) {
@@ -78,19 +78,19 @@ export async function _show({
  */
 function formatCommit(oid: string, object: Uint8Array, format: ShowFormat): string {
   const text = new TextDecoder().decode(object);
-  
+
   if (format === "raw") {
     return text;
   }
-  
+
   // Parse commit
   const lines = text.split("\n");
   const commit = parseCommitText(lines);
-  
+
   switch (format) {
     case "oneline":
       return `${abbreviateOid(oid)} ${commit.message.split("\n")[0]}`;
-      
+
     case "short":
       return [
         `commit ${abbreviateOid(oid)}`,
@@ -98,7 +98,7 @@ function formatCommit(oid: string, object: Uint8Array, format: ShowFormat): stri
         "",
         `    ${commit.message}`
       ].join("\n");
-      
+
     case "medium":
     case "pretty":
       return [
@@ -108,7 +108,7 @@ function formatCommit(oid: string, object: Uint8Array, format: ShowFormat): stri
         "",
         `    ${commit.message.split("\n").join("\n    ")}`
       ].join("\n");
-      
+
     case "full":
       return [
         `commit ${oid}`,
@@ -117,7 +117,7 @@ function formatCommit(oid: string, object: Uint8Array, format: ShowFormat): stri
         "",
         `    ${commit.message.split("\n").join("\n    ")}`
       ].join("\n");
-      
+
     case "fuller":
       return [
         `commit ${oid}`,
@@ -128,7 +128,7 @@ function formatCommit(oid: string, object: Uint8Array, format: ShowFormat): stri
         "",
         `    ${commit.message.split("\n").join("\n    ")}`
       ].join("\n");
-      
+
     default:
       return text;
   }
@@ -155,17 +155,17 @@ function parseCommitText(lines: string[]): {
     committerDate: "",
     message: ""
   };
-  
+
   let messageStart = 0;
-  
+
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i];
-    
+
     if (line === "") {
       messageStart = i + 1;
       break;
     }
-    
+
     if (line.startsWith("tree ")) {
       result.tree = line.slice(5);
     } else if (line.startsWith("parent ")) {
@@ -184,11 +184,11 @@ function parseCommitText(lines: string[]): {
       }
     }
   }
-  
+
   if (messageStart > 0) {
     result.message = lines.slice(messageStart).join("\n").trim();
   }
-  
+
   return result;
 }
 
@@ -199,15 +199,15 @@ function formatTree(oid: string, object: Uint8Array, format: ShowFormat): string
   if (format === "raw") {
     return new TextDecoder().decode(object);
   }
-  
+
   // Parse tree
   const tree = GitTree.from(object);
   const lines = [`tree ${oid}`, ""];
-  
+
   for (const entry of tree.entries()) {
     lines.push(`${entry.mode.padStart(6, "0")} ${entry.type} ${entry.oid}    ${entry.path}`);
   }
-  
+
   return lines.join("\n");
 }
 
@@ -216,11 +216,11 @@ function formatTree(oid: string, object: Uint8Array, format: ShowFormat): string
  */
 function formatBlob(oid: string, object: Uint8Array, format: ShowFormat): string {
   const text = new TextDecoder().decode(object);
-  
+
   if (format === "raw") {
     return text;
   }
-  
+
   // For blobs, show the content with object info header
   return `blob ${oid}\n${text}`;
 }
@@ -230,15 +230,15 @@ function formatBlob(oid: string, object: Uint8Array, format: ShowFormat): string
  */
 function formatTag(oid: string, object: Uint8Array, format: ShowFormat): string {
   const text = new TextDecoder().decode(object);
-  
+
   if (format === "raw") {
     return text;
   }
-  
+
   // Parse tag
   const lines = text.split("\n");
   const tag = parseTagText(lines);
-  
+
   return [
     `tag ${oid}`,
     `Object: ${tag.object}`,
@@ -267,17 +267,17 @@ function parseTagText(lines: string[]): {
     tagger: "",
     message: ""
   };
-  
+
   let messageStart = 0;
-  
+
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i];
-    
+
     if (line === "") {
       messageStart = i + 1;
       break;
     }
-    
+
     if (line.startsWith("object ")) {
       result.object = line.slice(7);
     } else if (line.startsWith("type ")) {
@@ -288,11 +288,11 @@ function parseTagText(lines: string[]): {
       result.tagger = line.slice(7);
     }
   }
-  
+
   if (messageStart > 0) {
     result.message = lines.slice(messageStart).join("\n").trim();
   }
-  
+
   return result;
 }
 

@@ -11,11 +11,11 @@ import { _writeTree } from "../commands/write-tree.ts";
 import { FileSystem } from "../models/file-system.ts";
 import { GitIndexManager } from "../managers/git-index.ts";
 import { GitRefManager } from "../managers/git-ref.ts";
-import { threeWayMerge, createPatch, applyPatch } from "../utils/apply-patch.ts";
+import { threeWayMerge } from "../utils/apply-patch.ts";
 import { join } from "../utils/join.ts";
 import { NotFoundError } from "../errors/not-found.ts";
 import { ObjectTypeError } from "../errors/object-type.ts";
-import { resolveFilepath } from "../utils/resolve-filepath.ts";
+// import { resolveFilepath } from "../utils/resolve-filepath.ts";
 import { normalizeStats } from "../utils/normalize-stats.ts";
 import { hashBlob } from "../api/hash-blob.ts";
 
@@ -79,7 +79,7 @@ export async function _cherryPick({
 }: CherryPickOptions): Promise<string | null> {
   // Get the commit to cherry-pick
   const commitInfo = await getCommitInfo({ fs, gitdir, oid });
-  
+
   // Handle merge commits
   if (commitInfo.parent.length > 1 && mainline === undefined) {
     throw new Error(
@@ -87,38 +87,38 @@ export async function _cherryPick({
       `Please specify which parent to use with --mainline <parent-number>`
     );
   }
-  
+
   // Get parent commit (for the diff)
   const parentIndex = mainline ? mainline - 1 : 0;
   const parentOid = commitInfo.parent[parentIndex];
-  
+
   if (!parentOid) {
     throw new Error(`Cannot cherry-pick root commit ${oid}`);
   }
-  
+
   // Get current HEAD
   const headOid = await _resolveRef({ cache, fs, gitdir, ref: "HEAD" });
   if (!headOid) {
     throw new NotFoundError("HEAD");
   }
-  
+
   // Get trees for all three commits
   const parentTree = await getCommitTree({ fs, gitdir, oid: parentOid });
   const cherryTree = await getCommitTree({ fs, gitdir, oid });
   const headTree = await getCommitTree({ fs, gitdir, oid: headOid });
-  
+
   // Get file lists from trees
   const parentFiles = await getTreeFiles({ fs, gitdir, tree: parentTree });
   const cherryFiles = await getTreeFiles({ fs, gitdir, tree: cherryTree });
   const headFiles = await getTreeFiles({ fs, gitdir, tree: headTree });
-  
+
   // Find all affected files
   const allFiles = new Set<string>();
   [...parentFiles, ...cherryFiles, ...headFiles].forEach(f => allFiles.add(f.path));
-  
+
   // Track conflicts
   const conflicts: string[] = [];
-  
+
   // Apply changes to index
   await GitIndexManager.acquire(
     { cache, fs: fs as any, gitdir },
@@ -127,7 +127,7 @@ export async function _cherryPick({
         const parentFile = parentFiles.find(f => f.path === filepath);
         const cherryFile = cherryFiles.find(f => f.path === filepath);
         const headFile = headFiles.find(f => f.path === filepath);
-        
+
         // Determine the operation
         if (!parentFile && cherryFile) {
           // File was added in cherry-pick commit
@@ -135,7 +135,7 @@ export async function _cherryPick({
             // File exists in HEAD - potential conflict
             const headContent = await getFileContent({ fs, gitdir, oid: headFile.oid });
             const cherryContent = await getFileContent({ fs, gitdir, oid: cherryFile.oid });
-            
+
             if (headContent !== cherryContent) {
               conflicts.push(filepath);
               // For now, use cherry-pick version
@@ -163,10 +163,10 @@ export async function _cherryPick({
             const parentContent = await getFileContent({ fs, gitdir, oid: parentFile.oid });
             const cherryContent = await getFileContent({ fs, gitdir, oid: cherryFile.oid });
             const headContent = await getFileContent({ fs, gitdir, oid: headFile.oid });
-            
+
             // Three-way merge
             const mergeResult = threeWayMerge(parentContent, headContent, cherryContent);
-            
+
             if (mergeResult.success && mergeResult.content) {
               // Write merged content
               const mergedOid = await _writeObject({
@@ -175,9 +175,9 @@ export async function _cherryPick({
                 type: "blob",
                 object: new TextEncoder().encode(mergeResult.content)
               });
-              
+
               await updateIndex(index, filepath, mergedOid, dir, fs);
-              
+
               // Update working directory
               await fs.writeFile(
                 join(dir, filepath),
@@ -186,7 +186,7 @@ export async function _cherryPick({
             } else {
               // Conflict
               conflicts.push(filepath);
-              
+
               // Write conflict markers to working directory
               if (mergeResult.content) {
                 await fs.writeFile(
@@ -200,19 +200,19 @@ export async function _cherryPick({
       }
     }
   );
-  
+
   // If there are conflicts, don't commit
   if (conflicts.length > 0) {
     console.error(`Cherry-pick resulted in conflicts in: ${conflicts.join(", ")}`);
     return null;
   }
-  
+
   // Create commit unless --no-commit
   if (!noCommit) {
     // Prepare commit message
-    const commitMessage = message || 
+    const commitMessage = message ||
       `${commitInfo.message}\n\n(cherry picked from commit ${oid})`;
-    
+
     // Use original author by default
     const commitAuthor = author || commitInfo.author;
     const commitCommitter = committer || {
@@ -221,7 +221,7 @@ export async function _cherryPick({
       timestamp: Math.floor(Date.now() / 1000),
       timezoneOffset: new Date().getTimezoneOffset()
     };
-    
+
     // Create new commit
     const newCommit = await createCommit({
       fs,
@@ -232,13 +232,13 @@ export async function _cherryPick({
       author: commitAuthor,
       committer: commitCommitter
     });
-    
+
     // Update HEAD
     await updateHEAD({ fs, gitdir, oid: newCommit });
-    
+
     return newCommit;
   }
-  
+
   return null;
 }
 
@@ -255,14 +255,14 @@ async function getCommitInfo({
   oid: string;
 }): Promise<CommitInfo> {
   const { type, object } = await _readObject({ fs: fs as any, gitdir, oid });
-  
+
   if (type !== "commit") {
     throw new ObjectTypeError(oid, type || "unknown", "commit");
   }
-  
+
   const text = new TextDecoder().decode(object);
   const lines = text.split("\n");
-  
+
   const result: CommitInfo = {
     tree: "",
     parent: [],
@@ -270,17 +270,17 @@ async function getCommitInfo({
     committer: { name: "", email: "", timestamp: 0, timezoneOffset: 0 },
     message: ""
   };
-  
+
   let messageStart = 0;
-  
+
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i];
-    
+
     if (line === "") {
       messageStart = i + 1;
       break;
     }
-    
+
     if (line.startsWith("tree ")) {
       result.tree = line.slice(5);
     } else if (line.startsWith("parent ")) {
@@ -307,11 +307,11 @@ async function getCommitInfo({
       }
     }
   }
-  
+
   if (messageStart > 0) {
     result.message = lines.slice(messageStart).join("\n").trim();
   }
-  
+
   return result;
 }
 
@@ -372,10 +372,10 @@ async function flattenTreeRecursive({
 }): Promise<Array<{ path: string; oid: string; mode: string }>> {
   const treeObj = await _readTree({ fs: fs as any, gitdir, oid: tree });
   const files: Array<{ path: string; oid: string; mode: string }> = [];
-  
+
   for (const entry of treeObj.entries()) {
     const fullPath = prefix ? `${prefix}/${entry.path}` : entry.path;
-    
+
     if (entry.type === "blob") {
       files.push({
         path: fullPath,
@@ -393,7 +393,7 @@ async function flattenTreeRecursive({
       files.push(...subFiles);
     }
   }
-  
+
   return files;
 }
 
@@ -424,7 +424,7 @@ async function updateIndex(
   fs: FileSystem
 ): Promise<void> {
   const stats = await fs.lstat(join(dir, filepath)).catch(() => null);
-  
+
   index.insert({
     filepath,
     oid,
@@ -445,7 +445,7 @@ async function updateIndex(
  * Write tree from index
  */
 async function writeTreeFromIndex({
-  cache,
+  // cache,
   fs,
   gitdir,
   dir
@@ -457,27 +457,27 @@ async function writeTreeFromIndex({
 }): Promise<string> {
   // Get the current working tree files
   const entries = [];
-  
+
   // For simplicity, we'll scan the working directory and create tree entries
   // In a full implementation, this would read from the actual Git index
   await scanDirectory(fs, dir, "", entries);
-  
+
   // Filter out .git directory
   const filteredEntries = entries.filter(entry => !entry.path.startsWith(".git"));
-  
+
   // Convert to tree entries format
   const treeEntries = [];
-  
+
   for (const entry of filteredEntries) {
     try {
       const fullPath = join(dir, entry.path);
       const stat = await fs.lstat(fullPath);
-      
+
       if (stat && stat.isFile()) {
         // Read file content and get hash
         const content = await fs.read(fullPath) as Uint8Array;
         const oid = await hashBlob({
-          fs: { 
+          fs: {
             readdir: fs.readdir.bind(fs),
             lstat: fs.lstat.bind(fs),
             readFile: () => Promise.resolve(content)
@@ -485,7 +485,7 @@ async function writeTreeFromIndex({
           gitdir,
           object: content
         });
-        
+
         treeEntries.push({
           mode: "100644", // Regular file mode
           path: entry.path,
@@ -493,20 +493,20 @@ async function writeTreeFromIndex({
           type: "blob"
         });
       }
-    } catch (error) {
+    } catch {
       // Skip files that can't be read
       continue;
     }
   }
-  
+
   // Create tree object
   const treeObject = {
     entries: treeEntries
   };
-  
+
   // Write the tree
   return await _writeTree({
-    fs: { 
+    fs: {
       readdir: fs.readdir.bind(fs),
       lstat: fs.lstat.bind(fs),
       writeFile: fs.write.bind(fs)
@@ -526,19 +526,19 @@ async function scanDirectory(
   entries: Array<{ path: string }>
 ): Promise<void> {
   const fullPath = relativePath ? join(baseDir, relativePath) : baseDir;
-  
+
   try {
     const dirEntries = await fs.readdir(fullPath);
-    
+
     for (const entryName of dirEntries) {
       // Skip .git directory
       if (entryName === ".git") {
         continue;
       }
-      
+
       const entryRelativePath = relativePath ? join(relativePath, entryName) : entryName;
       const entryFullPath = join(fullPath, entryName);
-      
+
       try {
         const stat = await fs.lstat(entryFullPath);
         if (stat && stat.isFile()) {
@@ -583,9 +583,9 @@ async function createCommit({
     "",
     message
   ];
-  
+
   const commitText = lines.join("\n");
-  
+
   return await _writeObject({
     fs: fs as any,
     gitdir,

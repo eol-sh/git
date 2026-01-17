@@ -324,6 +324,33 @@ export class FileSystem {
   writelink(filename: string, buffer: Uint8Array): Promise<void> {
     return this._symlink(new TextDecoder("utf8").decode(buffer), filename);
   }
+
+  /**
+   * Compatibility methods for FsInterface
+   */
+  async readFile(path: string, options?: { encoding?: string } | string): Promise<Uint8Array | string> {
+    const result = await this.read(path, typeof options === 'string' ? { encoding: options } : options as FileSystemOptions);
+    if (result === null) {
+      throw new Error(`ENOENT: no such file or directory, open '${path}'`);
+    }
+    return result;
+  }
+
+  async stat(path: string): Promise<FileStats> {
+    const result = await this.lstat(path);
+    if (result === null) {
+      throw new Error(`ENOENT: no such file or directory, stat '${path}'`);
+    }
+    return result;
+  }
+
+  async unlink(path: string): Promise<void> {
+    return await this.rm(path);
+  }
+
+  async writeFile(path: string, data: Uint8Array | string, options?: FileSystemOptions): Promise<void> {
+    return await this.write(path, data, options);
+  }
 }
 
 

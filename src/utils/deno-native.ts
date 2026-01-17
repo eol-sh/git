@@ -127,7 +127,7 @@ export const crypto = {
       encoder.encode(data) :
       data;
 
-    return await globalThis.crypto.subtle.digest("SHA-1", dataBuffer);
+    return await globalThis.crypto.subtle.digest("SHA-1", dataBuffer as ArrayBuffer | DataView | Uint8Array);
   },
   /*** SHA-256 implementation ***/
   sha256: async(data: Uint8Array | string): Promise<ArrayBuffer> => {
@@ -137,7 +137,7 @@ export const crypto = {
       encoder.encode(data) :
       data;
 
-    return await globalThis.crypto.subtle.digest("SHA-256", dataBuffer);
+    return await globalThis.crypto.subtle.digest("SHA-256", dataBuffer as ArrayBuffer | DataView | Uint8Array);
   }
 };
 

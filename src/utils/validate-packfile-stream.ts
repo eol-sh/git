@@ -3,7 +3,6 @@
  * Validates packfile integrity without loading entire file into memory
  */
 
-import { InternalError } from "../errors/internal.ts";
 
 interface StreamValidationResult {
   isValid: boolean;
@@ -28,7 +27,7 @@ export async function validatePackfileStream(
     while (true) {
       const { done, value } = await reader.read();
       if (done) break;
-      
+
       chunks.push(value);
       totalSize += value.length;
     }
@@ -96,11 +95,11 @@ export function createPackfileValidationTransform(): {
 } {
   const chunks: Uint8Array[] = [];
   let totalSize = 0;
-  let validationPromise: Promise<StreamValidationResult>;
+  // let validationPromise: Promise<StreamValidationResult>;
   let resolveValidation: (result: StreamValidationResult) => void;
 
   // Create the validation promise that will be resolved when stream ends
-  validationPromise = new Promise((resolve) => {
+  const validationPromise: Promise<StreamValidationResult> = new Promise((resolve) => {
     resolveValidation = resolve;
   });
 
@@ -126,7 +125,7 @@ export function createPackfileValidationTransform(): {
   });
 
   const readable = new ReadableStream<Uint8Array>({
-    start(controller) {
+    start(_controller) {
       // Set up transform logic
     },
 

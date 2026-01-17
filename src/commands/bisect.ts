@@ -3,11 +3,11 @@
  */
 
 import { FileSystem } from "../models/file-system.ts";
-import { BisectState, BisectSearchResult, BisectRunResult, BISECT_PATHS, DEFAULT_BISECT_TERMS } from "../models/bisect-state.ts";
-import { 
-  calculateBisectCommit, 
-  checkBisectComplete, 
-  addBisectResult, 
+import { BisectState, BisectSearchResult, BisectRunResult, BISECT_PATHS } from "../models/bisect-state.ts";
+import {
+  calculateBisectCommit,
+  checkBisectComplete,
+  addBisectResult,
   validateBisectState,
   createInitialBisectState,
   calculateStepsRemaining
@@ -55,38 +55,38 @@ export async function _bisectStart({
     // Check if bisect is already in progress
     const bisectDir = join(gitdir, "refs", "bisect");
     const bisectExists = await fs.exists(bisectDir);
-    
+
     if (bisectExists) {
       throw new Error("Bisect already in progress. Use 'git bisect reset' to reset first.");
     }
 
     // Resolve references
-    const badOid = await resolveRef({ 
-      fs: fs.promises, 
-      gitdir, 
-      ref: bad 
+    const badOid = await resolveRef({
+      fs: fs.promises,
+      gitdir,
+      ref: bad
     });
-    
+
     const goodOids: string[] = [];
     for (const goodRef of good) {
-      const oid = await resolveRef({ 
-        fs: fs.promises, 
-        gitdir, 
-        ref: goodRef 
+      const oid = await resolveRef({
+        fs: fs.promises,
+        gitdir,
+        ref: goodRef
       });
       goodOids.push(oid);
     }
 
     // Create initial bisect state
     const currentRef = await currentBranch({ fs: fs.promises, dir, gitdir }) || "HEAD";
-    const startOid = await resolveRef({ 
-      fs: fs.promises, 
-      gitdir, 
-      ref: currentRef 
+    const startOid = await resolveRef({
+      fs: fs.promises,
+      gitdir,
+      ref: currentRef
     });
 
     const state = createInitialBisectState(badOid, goodOids, startOid, terms, paths);
-    
+
     // Validate state
     const validation = validateBisectState(state);
     if (!validation.valid) {
@@ -124,7 +124,7 @@ export async function _bisectStart({
     }
 
     const remaining = calculateStepsRemaining(state);
-    
+
     return {
       found: false,
       oid: nextCommit,
@@ -208,25 +208,25 @@ async function markCommit({
   gitdir,
   ref,
   result
-}: BisectCommandOptions & { 
-  ref?: string; 
-  result: "good" | "bad" | "skip" 
+}: BisectCommandOptions & {
+  ref?: string;
+  result: "good" | "bad" | "skip"
 }): Promise<BisectSearchResult> {
   try {
     // Load current bisect state
     const state = await loadBisectState(fs, gitdir);
-    
+
     // Determine which commit to mark
-    const oid = ref ? await resolveRef({ 
-      fs: fs.promises, 
-      gitdir, 
-      ref 
+    const oid = ref ? await resolveRef({
+      fs: fs.promises,
+      gitdir,
+      ref
     }) : state.current || "HEAD";
-    
-    const resolvedOid = typeof oid === "string" ? oid : await resolveRef({ 
-      fs: fs.promises, 
-      gitdir, 
-      ref: "HEAD" 
+
+    const resolvedOid = typeof oid === "string" ? oid : await resolveRef({
+      fs: fs.promises,
+      gitdir,
+      ref: "HEAD"
     });
 
     // Add result to state
@@ -234,18 +234,18 @@ async function markCommit({
 
     // Check if bisect is complete
     const completion = checkBisectComplete(newState);
-    
+
     if (completion.complete) {
       // Clean up bisect state
       await cleanupBisectState(fs, gitdir);
-      
+
       return {
         found: true,
         oid: completion.culprit,
         remaining: 0,
         steps: 0,
-        message: completion.culprit ? 
-          `${completion.culprit} is the first bad commit` : 
+        message: completion.culprit ?
+          `${completion.culprit} is the first bad commit` :
           "Bisect complete"
       };
     }
@@ -281,7 +281,7 @@ async function markCommit({
 
     const remaining = completion.remaining;
     const steps = calculateStepsRemaining(newState);
-    
+
     return {
       found: false,
       oid: nextCommit,
@@ -299,7 +299,7 @@ async function markCommit({
  * Reset bisect session
  */
 export async function _bisectReset({
-  cache,
+  // cache,
   dir,
   fs,
   gitdir
@@ -307,7 +307,7 @@ export async function _bisectReset({
   try {
     // Load bisect state to get original HEAD
     const state = await loadBisectState(fs, gitdir);
-    
+
     // Checkout original HEAD
     await checkout({
       fs: fs.promises,
@@ -319,7 +319,7 @@ export async function _bisectReset({
     // Clean up bisect state
     await cleanupBisectState(fs, gitdir);
 
-  } catch (error) {
+  } catch {
     // If state doesn't exist, just clean up any partial state
     await cleanupBisectState(fs, gitdir);
   }
@@ -329,26 +329,26 @@ export async function _bisectReset({
  * Get bisect log
  */
 export async function _bisectLog({
-  cache,
-  dir,
+  // cache,
+  // dir,
   fs,
   gitdir
 }: BisectCommandOptions): Promise<string[]> {
   try {
     const state = await loadBisectState(fs, gitdir);
-    
+
     const logLines: string[] = [];
     logLines.push(`# bad: [${state.bad}]`);
-    
+
     for (const goodOid of state.good) {
       logLines.push(`# good: [${goodOid}]`);
     }
-    
+
     for (const entry of state.log) {
       const date = new Date(entry.timestamp).toISOString();
       logLines.push(`git bisect ${entry.result} ${entry.oid} # ${date}`);
     }
-    
+
     return logLines;
 
   } catch (error) {
@@ -396,7 +396,7 @@ export async function _bisectReplay({
       const oid = parts[3];
 
       switch (command) {
-        case "start":
+        case "start": {
           // Parse start command with full argument support
           const startOptions = parseBisectStartCommand(parts.slice(2));
           result = await _bisectStart({
@@ -406,30 +406,34 @@ export async function _bisectReplay({
             gitdir,
             options: startOptions
           });
+
           break;
-          
-        case "good":
+        }
+
+        case "good": {
           result = await _bisectGood({ cache, dir, fs, gitdir, ref: oid });
           break;
-          
-        case "bad":
+        }
+
+        case "bad": {
           result = await _bisectBad({ cache, dir, fs, gitdir, ref: oid });
           break;
-          
-        case "skip":
+        }
+
+        case "skip": {
           result = await _bisectSkip({ cache, dir, fs, gitdir, ref: oid });
           break;
+        }
       }
 
-      if (result.found) {
+      if (result.found)
         break;
-      }
     }
 
     return result;
 
   } catch (error) {
-    throw new Error(`Failed to replay bisect: ${error}`);
+    throw new Error(`Failed to replay bisect: ${String(error)}`);
   }
 }
 
@@ -526,7 +530,7 @@ async function saveBisectState(fs: FileSystem, gitdir: string, state: BisectStat
   // Save individual state files
   await fs.writeFile(join(bisectDir, BISECT_PATHS.BISECT_START), state.start);
   await fs.writeFile(join(bisectDir, BISECT_PATHS.BISECT_BAD), state.bad);
-  
+
   if (state.good.length > 0) {
     await fs.writeFile(join(bisectDir, BISECT_PATHS.BISECT_GOOD), state.good.join("\n"));
   }
@@ -541,7 +545,7 @@ async function saveBisectState(fs: FileSystem, gitdir: string, state: BisectStat
   }
 
   // Save log
-  const logContent = state.log.map(entry => 
+  const logContent = state.log.map(entry =>
     `${entry.oid} ${entry.result} ${entry.timestamp}`
   ).join("\n");
   await fs.writeFile(join(bisectDir, BISECT_PATHS.BISECT_LOG), logContent);
@@ -556,11 +560,11 @@ async function saveBisectState(fs: FileSystem, gitdir: string, state: BisectStat
  */
 async function loadBisectState(fs: FileSystem, gitdir: string): Promise<BisectState> {
   const bisectDir = join(gitdir, "refs", "bisect");
-  
+
   try {
     const start = await fs.readFile(join(bisectDir, BISECT_PATHS.BISECT_START), { encoding: "utf8" });
     const bad = await fs.readFile(join(bisectDir, BISECT_PATHS.BISECT_BAD), { encoding: "utf8" });
-    
+
     let good: string[] = [];
     try {
       const goodContent = await fs.readFile(join(bisectDir, BISECT_PATHS.BISECT_GOOD), { encoding: "utf8" });
@@ -623,7 +627,7 @@ async function loadBisectState(fs: FileSystem, gitdir: string): Promise<BisectSt
       current: log.length > 0 ? log[log.length - 1].oid : undefined
     };
 
-  } catch (error) {
+  } catch {
     throw new Error(`No bisect session in progress`);
   }
 }
@@ -633,7 +637,7 @@ async function loadBisectState(fs: FileSystem, gitdir: string): Promise<BisectSt
  */
 async function cleanupBisectState(fs: FileSystem, gitdir: string): Promise<void> {
   const bisectDir = join(gitdir, "refs", "bisect");
-  
+
   try {
     await fs.rm(bisectDir, { recursive: true, force: true });
   } catch {
@@ -649,7 +653,7 @@ interface BisectRunCommandOptions extends BisectCommandOptions {
  * Run automated bisect with a test script
  */
 export async function _bisectRun({
-  cache,
+  // cache,
   dir,
   fs,
   gitdir,
@@ -718,8 +722,8 @@ export async function _bisectRun({
           stderr: "piped"
         });
 
-        const { code, stdout, stderr } = await command.output();
-        
+        const { code } = await command.output();
+
         // Standard git bisect run exit code interpretation:
         // 0 = good, 1-124 = bad, 125 = skip, 126+ = abort
         if (code === 0) {
@@ -746,7 +750,7 @@ export async function _bisectRun({
 
       // Add the result to bisect state
       state = addBisectResult(state, nextCommit, testResult);
-      
+
       // Save updated state
       await saveBisectState(fs, gitdir, state);
 
@@ -779,8 +783,7 @@ export async function _bisectRun({
       message: "Bisect run completed but no conclusive result found",
       finished: false
     };
-
   } catch (error) {
-    throw new Error(`git bisect run failed: ${(error as Error).message}`);
+    throw new Error(`git bisect run failed: ${String(error)}`);
   }
 }

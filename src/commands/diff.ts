@@ -5,18 +5,18 @@
 import { _readObject } from "../storage/read-object.ts";
 import { _readTree } from "../commands/read-tree.ts";
 import { _resolveRef } from "../commands/resolve-ref.ts";
-import { assertParameter } from "../utils/assert-parameter.ts";
-import { createUnifiedDiff, DiffEdit, myersDiff, splitLines } from "../utils/diff-algorithm.ts";
-import { DiffResult, FileDiff, Hunk, DiffLine, DiffOptions } from "../models/git-diff.ts";
+// import { assertParameter } from "../utils/assert-parameter.ts";
+import { DiffEdit, myersDiff, splitLines } from "../utils/diff-algorithm.ts";
+import { DiffResult, FileDiff, Hunk, DiffOptions } from "../models/git-diff.ts";
 import { FileSystem } from "../models/file-system.ts";
-import { GitIndexManager } from "../managers/git-index.ts";
+// import { GitIndexManager } from "../managers/git-index.ts";
 import { GitTree } from "../models/git-tree.ts";
 import { join } from "../utils/join.ts";
 import { NotFoundError } from "../errors/not-found.ts";
 import { ObjectTypeError } from "../errors/object-type.ts";
-import { posixifyPathBuffer } from "../utils/posixify-path-buffer.ts";
+// import { posixifyPathBuffer } from "../utils/posixify-path-buffer.ts";
 
-import type { Cache, FsInterface, TreeEntry } from "../types.ts";
+import type { Cache, TreeEntry } from "../types.ts";
 
 interface DiffCommandOptions {
   cache: Cache;
@@ -58,21 +58,21 @@ export async function _diff({
 
   // Get trees to compare
   const tree1 = await getTreeForRef({ cache, fs, gitdir, ref: ref1 });
-  const tree2 = ref2 ? 
+  const tree2 = ref2 ?
     await getTreeForRef({ cache, fs, gitdir, ref: ref2 }) :
     await getWorkingTree({ dir, fs, gitdir, filepath });
 
   // Get file lists
   const files1 = await flattenTree(tree1);
   const files2 = await flattenTree(tree2);
-  
+
   // Build a map of all unique file paths
   const allPaths = new Set<string>();
   files1.forEach(f => allPaths.add(f.path));
   files2.forEach(f => allPaths.add(f.path));
 
   // Filter by filepath if provided
-  const pathsToCheck = filepath ? 
+  const pathsToCheck = filepath ?
     (Array.isArray(filepath) ? filepath : [filepath]) :
     Array.from(allPaths);
 
@@ -138,7 +138,7 @@ export async function _diff({
     // Perform diff
     const lines1 = splitLines(content1);
     const lines2 = splitLines(content2);
-    
+
     const edits = myersDiff(lines1, lines2, (a, b) => {
       if (ignoreWhitespace) {
         return a.trim() === b.trim();
@@ -148,7 +148,7 @@ export async function _diff({
 
     // Convert to hunks
     const hunks = createHunksFromEdits(lines1, lines2, edits, unified);
-    
+
     // Count changes
     for (const hunk of hunks) {
       for (const line of hunk.lines) {
@@ -195,14 +195,14 @@ async function getTreeForRef({
 }): Promise<GitTree> {
   // Resolve ref to commit oid
   const oid = await _resolveRef({ cache, fs, gitdir, ref });
-  
+
   if (!oid) {
     throw new NotFoundError(ref);
   }
 
   // Read commit object
   const { type, object } = await _readObject({ fs, gitdir, oid });
-  
+
   if (type !== "commit") {
     throw new ObjectTypeError(oid, type, "commit");
   }
@@ -210,13 +210,13 @@ async function getTreeForRef({
   // Parse commit to get tree oid
   const commitText = new TextDecoder().decode(object);
   const match = commitText.match(/^tree ([0-9a-f]{40})/m);
-  
+
   if (!match) {
     throw new Error(`Invalid commit object: ${oid}`);
   }
 
   const treeOid = match[1];
-  
+
   // Read and return tree
   return await _readTree({ fs, gitdir, oid: treeOid });
 }
@@ -236,12 +236,12 @@ async function getWorkingTree({
   filepath?: string | string[];
 }): Promise<GitTree> {
   const entries: TreeEntry[] = [];
-  
+
   try {
     // If specific filepath(s) provided, only check those
     if (filepath) {
       const paths = Array.isArray(filepath) ? filepath : [filepath];
-      
+
       for (const path of paths) {
         const fullPath = join(dir, path);
         try {
@@ -249,7 +249,7 @@ async function getWorkingTree({
           if (stat && stat.isFile()) {
             const content = await fs.read(fullPath) as Uint8Array;
             const oid = await calculateBlobHash(content);
-            
+
             entries.push({
               mode: "100644",
               path: path,
@@ -265,11 +265,11 @@ async function getWorkingTree({
       // Scan entire working tree
       await scanWorkingDirectory(fs, dir, "", entries, gitdir);
     }
-    
-  } catch (error) {
+
+  } catch {
     // If we can't scan working tree, return empty tree
   }
-  
+
   return new GitTree(entries);
 }
 
@@ -284,26 +284,26 @@ async function scanWorkingDirectory(
   gitdir: string
 ): Promise<void> {
   const fullPath = relativePath ? join(baseDir, relativePath) : baseDir;
-  
+
   try {
     const dirEntries = await fs.readdir(fullPath);
-    
+
     for (const entryName of dirEntries) {
       // Skip .git directory
       if (entryName === ".git") {
         continue;
       }
-      
+
       const entryRelativePath = relativePath ? join(relativePath, entryName) : entryName;
       const entryFullPath = join(fullPath, entryName);
-      
+
       try {
         const stat = await fs.lstat(entryFullPath);
         if (stat && stat.isFile()) {
           // Read file content and calculate hash
           const content = await fs.read(entryFullPath) as Uint8Array;
           const oid = await calculateBlobHash(content);
-          
+
           entries.push({
             mode: "100644",
             path: entryRelativePath,
@@ -333,11 +333,11 @@ async function calculateBlobHash(content: Uint8Array): Promise<string> {
   const fullContent = new Uint8Array(headerBytes.length + content.length);
   fullContent.set(headerBytes, 0);
   fullContent.set(content, headerBytes.length);
-  
+
   // Calculate SHA-1 hash
   const hashBuffer = await crypto.subtle.digest("SHA-1", fullContent);
   const hashArray = new Uint8Array(hashBuffer);
-  
+
   // Convert to hex string
   return Array.from(hashArray)
     .map(b => b.toString(16).padStart(2, '0'))
@@ -347,12 +347,12 @@ async function calculateBlobHash(content: Uint8Array): Promise<string> {
 /**
  * Flatten a tree into a list of files
  */
-async function flattenTree(tree: GitTree, prefix = ""): Promise<TreeFile[]> {
+function flattenTree(tree: GitTree, prefix = ""): TreeFile[] {
   const files: TreeFile[] = [];
-  
+
   for (const entry of tree.entries()) {
     const path = prefix ? join(prefix, entry.path) : entry.path;
-    
+
     if (entry.type === "tree") {
       // Recursively flatten subtrees
       // Note: This would need to read the subtree object
@@ -366,7 +366,7 @@ async function flattenTree(tree: GitTree, prefix = ""): Promise<TreeFile[]> {
       });
     }
   }
-  
+
   return files;
 }
 
@@ -383,11 +383,11 @@ async function getFileContent({
   oid: string;
 }): Promise<string> {
   const { type, object } = await _readObject({ fs, gitdir, oid });
-  
+
   if (type !== "blob") {
     throw new ObjectTypeError(oid, type, "blob");
   }
-  
+
   return new TextDecoder().decode(object);
 }
 
@@ -422,12 +422,12 @@ function createHunksFromEdits(
 
   for (let i = 0; i < edits.length; i++) {
     const edit = edits[i];
-    
+
     if (edit.type === "equal") {
       // Add context lines
-      const startContext = Math.max(0, edit.oldEnd - contextLines);
-      const endContext = Math.min(oldLines.length, edit.oldStart + contextLines);
-      
+      // const startContext = Math.max(0, edit.oldEnd - contextLines);
+      // const endContext = Math.min(oldLines.length, edit.oldStart + contextLines);
+
       if (currentHunk) {
         // Add trailing context to current hunk
         for (let j = edit.oldStart; j < Math.min(edit.oldEnd, edit.oldStart + contextLines); j++) {
@@ -438,7 +438,7 @@ function createHunksFromEdits(
             newLineNumber: newLineNum++
           });
         }
-        
+
         // Check if we should start a new hunk
         if (edit.oldEnd - edit.oldStart > contextLines * 2) {
           hunks.push(currentHunk);
@@ -459,7 +459,7 @@ function createHunksFromEdits(
           lines: [],
           header: ""
         };
-        
+
         // Add leading context
         for (let j = contextStart; j < edit.oldStart; j++) {
           currentHunk.lines.push({
@@ -472,7 +472,7 @@ function createHunksFromEdits(
           currentHunk.newLines++;
         }
       }
-      
+
       if (edit.type === "delete") {
         for (let j = edit.oldStart; j < edit.oldEnd; j++) {
           currentHunk.lines.push({
@@ -496,11 +496,11 @@ function createHunksFromEdits(
       }
     }
   }
-  
+
   if (currentHunk) {
     currentHunk.header = `@@ -${currentHunk.oldStart},${currentHunk.oldLines} +${currentHunk.newStart},${currentHunk.newLines} @@`;
     hunks.push(currentHunk);
   }
-  
+
   return hunks;
 }

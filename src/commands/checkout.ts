@@ -79,13 +79,13 @@ export async function _checkout({
 
   try {
     oid = await GitRefManager.resolve({ fs: unifiedFs, gitdir, ref });
-    
+
     // Handle the case where ref exists but remote is specified
     if (remote && remote !== "origin") {
       // Check if the existing ref tracks a different remote
       const config = await GitConfigManager.get({ fs: unifiedFs, gitdir });
       const currentRemote = await config.get(`branch.${ref}.remote`).catch(() => null);
-      
+
       if (currentRemote && currentRemote !== remote) {
         // Ref exists but tracks a different remote
         if (track) {
@@ -96,7 +96,7 @@ export async function _checkout({
             gitdir,
             ref: remoteRef
           }).catch(() => null);
-          
+
           if (remoteOid) {
             // Update the branch to point to the new remote's version
             oid = remoteOid;
@@ -347,10 +347,10 @@ async function analyze({
       const targetOid = A ? await A.oid() : undefined;
       const workdirOid = B ? await B.oid() : undefined;
       const stageOid = C ? await C.oid() : undefined;
-      
+
       const targetMode = A ? await A.mode() : undefined;
-      const workdirMode = B ? await B.mode() : undefined;
-      const stageMode = C ? await C.mode() : undefined;
+      // const workdirMode = B ? await B.mode() : undefined;
+      // const stageMode = C ? await C.mode() : undefined;
 
       const targetType = A ? await A.type() : undefined;
       const workdirType = B ? await B.type() : undefined;
@@ -365,7 +365,7 @@ async function analyze({
       if (targetOid && !workdirOid && !stageOid) {
         // File exists in target but nowhere else - create it
         ops.push(["create", fullpath, targetOid, targetMode]);
-      } 
+      }
       else if (!targetOid && workdirOid && !stageOid) {
         // File exists in workdir only - remove it (clean checkout)
         ops.push(["delete", fullpath]);
@@ -392,7 +392,7 @@ async function analyze({
       }
       else if (targetOid && workdirOid && stageOid) {
         const allSame = targetOid === workdirOid && workdirOid === stageOid;
-        
+
         if (!allSame) {
           if (targetOid === stageOid && targetOid !== workdirOid) {
             // Workdir modified - update to target

@@ -46,8 +46,8 @@ export function applyPatch(
   const lines = splitLines(originalContent);
   const result: string[] = [];
   let lineIndex = 0;
-  let conflicts: ConflictMarker[] = [];
-  
+  // let conflicts: ConflictMarker[] = [];
+
   for (const hunk of patch.hunks) {
     // Copy lines before the hunk
     while (lineIndex < hunk.oldStart - 1) {
@@ -56,10 +56,10 @@ export function applyPatch(
       }
       lineIndex++;
     }
-    
+
     // Apply the hunk
     const hunkResult = applyHunk(lines, lineIndex, hunk);
-    
+
     if (hunkResult.success) {
       result.push(...hunkResult.lines);
       lineIndex = hunkResult.nextIndex;
@@ -71,24 +71,24 @@ export function applyPatch(
         ours: lines.slice(lineIndex, lineIndex + hunk.oldLines),
         theirs: hunkResult.lines
       });
-      
+
       // Add conflict markers
       result.push("<<<<<<< HEAD");
       result.push(...lines.slice(lineIndex, lineIndex + hunk.oldLines));
       result.push("=======");
       result.push(...hunkResult.lines);
       result.push(">>>>>>> cherry-pick");
-      
+
       lineIndex += hunk.oldLines;
     }
   }
-  
+
   // Copy remaining lines
   while (lineIndex < lines.length) {
     result.push(lines[lineIndex]);
     lineIndex++;
   }
-  
+
   return {
     success: conflicts.length === 0,
     content: result.join("\n"),
@@ -107,12 +107,12 @@ function applyHunk(
   const result: string[] = [];
   let currentIndex = startIndex;
   let expectedIndex = 0;
-  
+
   for (const patchLine of hunk.lines) {
     switch (patchLine.type) {
       case "context":
         // Context line should match
-        if (currentIndex >= lines.length || 
+        if (currentIndex >= lines.length ||
             lines[currentIndex] !== patchLine.content) {
           // Context doesn't match - conflict
           return {
@@ -125,10 +125,10 @@ function applyHunk(
         currentIndex++;
         expectedIndex++;
         break;
-        
+
       case "delete":
         // Line should exist and match
-        if (currentIndex >= lines.length || 
+        if (currentIndex >= lines.length ||
             lines[currentIndex] !== patchLine.content) {
           // Line to delete doesn't match - conflict
           return {
@@ -141,14 +141,14 @@ function applyHunk(
         currentIndex++;
         expectedIndex++;
         break;
-        
+
       case "add":
         // Add new line
         result.push(patchLine.content);
         break;
     }
   }
-  
+
   return {
     success: true,
     lines: result,
@@ -176,10 +176,10 @@ export function createPatch(
 ): Patch {
   const oldLines = splitLines(oldContent);
   const newLines = splitLines(newContent);
-  
+
   const edits = myersDiff(oldLines, newLines);
   const hunks = editsToHunks(oldLines, newLines, edits);
-  
+
   return {
     oldFile,
     newFile,
@@ -198,7 +198,7 @@ function editsToHunks(
 ): PatchHunk[] {
   const hunks: PatchHunk[] = [];
   let currentHunk: PatchHunk | null = null;
-  
+
   for (const edit of edits) {
     if (edit.type === "equal") {
       // Add context lines
@@ -213,7 +213,7 @@ function editsToHunks(
           currentHunk.oldLines++;
           currentHunk.newLines++;
         }
-        
+
         // If we've added enough context, close the hunk
         if (edit.oldEnd - edit.oldStart > contextLines * 2) {
           hunks.push(currentHunk);
@@ -231,7 +231,7 @@ function editsToHunks(
           newLines: 0,
           lines: []
         };
-        
+
         // Add leading context
         for (let i = contextStart; i < edit.oldStart; i++) {
           currentHunk.lines.push({
@@ -242,7 +242,7 @@ function editsToHunks(
           currentHunk.newLines++;
         }
       }
-      
+
       if (edit.type === "delete") {
         for (let i = edit.oldStart; i < edit.oldEnd; i++) {
           currentHunk.lines.push({
@@ -262,11 +262,11 @@ function editsToHunks(
       }
     }
   }
-  
+
   if (currentHunk) {
     hunks.push(currentHunk);
   }
-  
+
   return hunks;
 }
 
@@ -278,14 +278,14 @@ export function threeWayMerge(
   ours: string,
   theirs: string
 ): PatchResult {
-  const baseLines = splitLines(base);
-  const oursLines = splitLines(ours);
-  const theirsLines = splitLines(theirs);
-  
+  // const baseLines = splitLines(base);
+  // const oursLines = splitLines(ours);
+  // const theirsLines = splitLines(theirs);
+
   // Get diffs from base
-  const oursDiff = myersDiff(baseLines, oursLines);
-  const theirsDiff = myersDiff(baseLines, theirsLines);
-  
+  // const oursDiff = myersDiff(baseLines, oursLines);
+  // const theirsDiff = myersDiff(baseLines, theirsLines);
+
   // Apply their changes to our version
   const theirsPatch = createPatch(base, theirs);
   return applyPatch(ours, theirsPatch);

@@ -1,13 +1,12 @@
 /**
  * Git bisect algorithm utilities
- * 
+ *
  * Implementation of binary search algorithm for finding the first bad commit
  */
 
 import { FileSystem } from "../models/file-system.ts";
 import { BisectState, BisectLogEntry, BisectResult } from "../models/bisect-state.ts";
 import { log } from "../api/log.ts";
-import { resolveRef } from "../api/resolve-ref.ts";
 
 import type { Cache } from "../types.ts";
 
@@ -25,17 +24,17 @@ export async function calculateBisectCommit(
   state: BisectState,
   options: BisectAlgorithmOptions
 ): Promise<string | null> {
-  const { cache, dir, fs, gitdir } = options;
+  // const { fs, gitdir } = options;
 
   // Get all commits between good and bad commits
   const commits = await getCommitRange(state, options);
-  
+
   if (commits.length === 0) {
     return null; // Bisect complete
   }
 
   // Filter out already tested commits
-  const untested = commits.filter(commit => 
+  const untested = commits.filter(commit =>
     !state.log.some(entry => entry.oid === commit)
   );
 
@@ -55,12 +54,12 @@ async function getCommitRange(
   state: BisectState,
   options: BisectAlgorithmOptions
 ): Promise<string[]> {
-  const { cache, dir, fs, gitdir } = options;
+  const { fs, gitdir } = options;
 
   try {
     // Get commit history from bad to all good commits
     const commits = new Set<string>();
-    
+
     // Start from bad commit and walk backwards
     const badCommits = await log({
       cache,
@@ -81,10 +80,10 @@ async function getCommitRange(
         ref: goodRef,
         depth: 1000
       });
-      
+
       // Remove good commits from the set
       const goodOids = new Set(goodCommits.map(c => c.oid));
-      
+
       for (const commit of badCommits) {
         if (!goodOids.has(commit.oid)) {
           commits.add(commit.oid);
@@ -107,17 +106,17 @@ export function checkBisectComplete(state: BisectState): {
   remaining: number;
 } {
   // Count untested commits
-  const testedCommits = new Set(state.log.map(entry => entry.oid));
-  
+  // const testedCommits = new Set(state.log.map(entry => entry.oid));
+
   // If we've narrowed it down to one commit, we're done
   const remainingCount = getRemainingCommitCount(state);
-  
+
   if (remainingCount <= 1) {
     // Find the first bad commit
     const badEntries = state.log
       .filter(entry => entry.result === "bad")
       .sort((a, b) => a.timestamp - b.timestamp);
-      
+
     return {
       complete: true,
       culprit: badEntries.length > 0 ? badEntries[0].oid : state.bad,
@@ -136,9 +135,9 @@ export function checkBisectComplete(state: BisectState): {
  */
 function getRemainingCommitCount(state: BisectState): number {
   const tested = state.log.length;
-  const badCommits = state.log.filter(entry => entry.result === "bad").length;
+  // const badCommits = state.log.filter(entry => entry.result === "bad").length;
   const goodCommits = state.log.filter(entry => entry.result === "good").length;
-  
+
   // Simple estimation: log2 of remaining commits
   // In practice this would require more sophisticated commit graph analysis
   return Math.max(0, Math.ceil(Math.log2(Math.max(1, tested - goodCommits))));
