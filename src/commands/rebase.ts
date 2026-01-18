@@ -312,7 +312,7 @@ async function executeRebase({
       }
 
       // Check if command failed (exec command)
-      if (result.success === false) {
+      if ((result as any).success === false) {
         await saveRebaseState(fs, gitdir, state);
         return {
           success: false,
@@ -345,7 +345,7 @@ async function executeRebase({
 
   return {
     success: true,
-    oid: newHead,
+    oid: newHead ?? undefined,
     message: "Rebase completed successfully"
   };
 }
@@ -365,7 +365,7 @@ async function executeTodoItem({
   fs: FileSystem;
   gitdir: string;
   item: RebaseTodoItem;
-}): Promise<{ conflicts?: string[] }> {
+}): Promise<{ conflicts?: string[]; message?: string; paused?: boolean; success?: boolean }> {
   switch (item.command) {
     case "pick": {
       return await executePick(cache, dir, fs, gitdir, item);
@@ -392,7 +392,13 @@ async function executeTodoItem({
     }
 
     case "break": {
-      return await executeBreak(cache, dir, fs, gitdir, state);
+      // Break command just pauses the rebase
+      return {
+        conflicts: [],
+        message: "Rebase paused at break command. Use 'git rebase --continue' to resume.",
+        paused: true,
+        success: true
+      };
     }
 
     case "drop": {
@@ -459,21 +465,22 @@ async function executeReword(cache: Cache, dir: string, fs: FileSystem, gitdir: 
     });
 
     const commit = GitCommit.from(object);
+    const parsed = commit.parse();
     // Use rewritten message from todo item if provided, otherwise original message
-    const message = item.message || commit.message;
+    const message = item.message || parsed.message;
 
     // Create new commit with potentially edited message
     const newCommit = await _writeCommit({
       commit: {
-        author: commit.author,
+        author: parsed.author,
         committer: {
-          ...commit.committer,
+          ...parsed.committer,
           timestamp: Math.floor(Date.now() / 1000),
           timezoneOffset: new Date().getTimezoneOffset()
         },
         message: String(message),
         parent: [String(await _resolveRef({ cache, fs, gitdir, ref: "HEAD" }))],
-        tree: commit.tree
+        tree: parsed.tree
       },
       fs: fs as any,
       gitdir
@@ -522,19 +529,20 @@ async function executeEdit(cache: Cache, dir: string, fs: FileSystem, gitdir: st
     });
 
     const commit = GitCommit.from(object);
+    const parsed = commit.parse();
 
     // Create new commit (user would normally amend this)
     const newCommit = await _writeCommit({
       commit: {
-        author: commit.author,
+        author: parsed.author,
         committer: {
-          ...commit.committer,
+          ...parsed.committer,
           timestamp: Math.floor(Date.now() / 1000),
           timezoneOffset: new Date().getTimezoneOffset()
         },
-        message: String(commit.message),
+        message: String(parsed.message),
         parent: [String(await _resolveRef({ cache, fs, gitdir, ref: "HEAD" }))],
-        tree: commit.tree
+        tree: parsed.tree
       },
       fs: fs as any,
       gitdir
@@ -580,6 +588,7 @@ async function executeSquash(cache: Cache, dir: string, fs: FileSystem, gitdir: 
     });
 
     const headCommit = GitCommit.from(headObject);
+    const headParsed = headCommit.parse();
 
     // Get the squash commit info
     const { object: squashObject } = await _readObject({
@@ -590,21 +599,22 @@ async function executeSquash(cache: Cache, dir: string, fs: FileSystem, gitdir: 
     });
 
     const squashCommit = GitCommit.from(squashObject);
+    const squashParsed = squashCommit.parse();
     // Combine commit messages
-    const combinedMessage = `${headCommit.message}\n\n${squashCommit.message}`;
+    const combinedMessage = `${headParsed.message}\n\n${squashParsed.message}`;
 
     // Create a new commit that replaces the previous one, combining both changes
     const newCommit = await _writeCommit({
       commit: {
-        author: headCommit.author, // Keep original author
+        author: headParsed.author, // Keep original author
         committer: {
-          ...headCommit.committer,
+          ...headParsed.committer,
           timestamp: Math.floor(Date.now() / 1000),
           timezoneOffset: new Date().getTimezoneOffset()
         },
         message: combinedMessage,
-        parent: headCommit.parent, // Use the parent of the original commit
-        tree: squashCommit.tree // Use the tree after applying squash changes
+        parent: headParsed.parent, // Use the parent of the original commit
+        tree: squashParsed.tree // Use the tree after applying squash changes
       },
       fs: fs as any,
       gitdir
@@ -650,6 +660,7 @@ async function executeFixup(cache: Cache, dir: string, fs: FileSystem, gitdir: s
     });
 
     const headCommit = GitCommit.from(headObject);
+    const headParsed = headCommit.parse();
 
     // Get the fixup commit info (for tree)
     const { object: fixupObject } = await _readObject({
@@ -660,20 +671,21 @@ async function executeFixup(cache: Cache, dir: string, fs: FileSystem, gitdir: s
     });
 
     const fixupCommit = GitCommit.from(fixupObject);
+    const fixupParsed = fixupCommit.parse();
 
     // Create a new commit that replaces the previous one with combined changes
     // but keeps only the original commit message (discard fixup message)
     const newCommit = await _writeCommit({
       commit: {
-        author: headCommit.author, // Keep original author
+        author: headParsed.author, // Keep original author
         committer: {
-          ...headCommit.committer,
+          ...headParsed.committer,
           timestamp: Math.floor(Date.now() / 1000),
           timezoneOffset: new Date().getTimezoneOffset()
         },
-        message: String(headCommit.message), // Keep only the original message
-        parent: headCommit.parent, // Use the parent of the original commit
-        tree: fixupCommit.tree // Use the tree after applying fixup changes
+        message: String(headParsed.message), // Keep only the original message
+        parent: headParsed.parent, // Use the parent of the original commit
+        tree: fixupParsed.tree // Use the tree after applying fixup changes
       },
       fs: fs as any,
       gitdir
@@ -751,17 +763,6 @@ async function executeExec(_cache: Cache, dir: string, _fs: FileSystem, _gitdir:
   }
 }
 
-async function executeBreak(_cache: Cache, _dir: string, fs: FileSystem, gitdir: string, state: RebaseState) {
-  // Save current rebase state to allow resumption
-  await saveRebaseState(fs, gitdir, state);
-
-  return {
-    conflicts: [],
-    message: "Rebase paused at break command. Use 'git rebase --continue' to resume.",
-    paused: true, // Special flag to indicate rebase should pause
-    success: true
-  };
-}
 
 /**
  * Helper functions
@@ -830,15 +831,16 @@ async function getCommitRange({
           continue;
 
         const commit = GitCommit.from(object);
+        const parsed = commit.parse();
 
         // Add this commit to our list (in reverse chronological order)
         commits.push({
-          message: String(commit.message),
+          message: String(parsed.message),
           oid: currentOid
         });
 
         // Add parent commits to the stack for processing
-        for (const parentOid of commit.parent) {
+        for (const parentOid of parsed.parent) {
           if (!visited.has(parentOid))
             stack.push(parentOid);
         }
@@ -862,7 +864,7 @@ async function getCommitRange({
 async function getCurrentBranchName(fs: FileSystem, gitdir: string): Promise<string> {
   try {
     const head = await fs.readFile(join(gitdir, "HEAD"));
-    const headText = new TextDecoder().decode(head);
+    const headText = typeof head === 'string' ? head : new TextDecoder().decode(head);
 
     if (headText.startsWith("ref: ")) {
       return headText.slice(5).trim();
@@ -909,7 +911,7 @@ async function saveRebaseState(fs: FileSystem, gitdir: string, state: RebaseStat
   const rebaseDir = join(gitdir, REBASE_PATHS.DIR);
 
   // Create rebase directory
-  await fs.mkdir(rebaseDir, { recursive: true });
+  await (fs as any).mkdir(rebaseDir, { recursive: true });
 
   // Save state files
   await fs.writeFile(join(rebaseDir, REBASE_PATHS.ONTO), new TextEncoder().encode(state.onto));
@@ -934,15 +936,20 @@ async function loadRebaseState(fs: FileSystem, gitdir: string): Promise<RebaseSt
   const rebaseDir = join(gitdir, REBASE_PATHS.DIR);
 
   try {
-    const onto = new TextDecoder().decode(await fs.readFile(join(rebaseDir, REBASE_PATHS.ONTO)));
-    const origHead = new TextDecoder().decode(await fs.readFile(join(rebaseDir, REBASE_PATHS.ORIG_HEAD)));
-    const headName = new TextDecoder().decode(await fs.readFile(join(rebaseDir, REBASE_PATHS.HEAD_NAME)));
+    const ontoData = await fs.readFile(join(rebaseDir, REBASE_PATHS.ONTO));
+    const onto = typeof ontoData === 'string' ? ontoData : new TextDecoder().decode(ontoData);
+    const origHeadData = await fs.readFile(join(rebaseDir, REBASE_PATHS.ORIG_HEAD));
+    const origHead = typeof origHeadData === 'string' ? origHeadData : new TextDecoder().decode(origHeadData);
+    const headNameData = await fs.readFile(join(rebaseDir, REBASE_PATHS.HEAD_NAME));
+    const headName = typeof headNameData === 'string' ? headNameData : new TextDecoder().decode(headNameData);
 
     const interactive = await fs.exists?.(join(rebaseDir, REBASE_PATHS.INTERACTIVE)) ?? false;
 
     // Load todo and done lists
-    const todoText = new TextDecoder().decode(await fs.readFile(join(rebaseDir, REBASE_PATHS.TODO)));
-    const doneText = new TextDecoder().decode(await fs.readFile(join(rebaseDir, REBASE_PATHS.DONE)));
+    const todoData = await fs.readFile(join(rebaseDir, REBASE_PATHS.TODO));
+    const todoText = typeof todoData === 'string' ? todoData : new TextDecoder().decode(todoData);
+    const doneData = await fs.readFile(join(rebaseDir, REBASE_PATHS.DONE));
+    const doneText = typeof doneData === 'string' ? doneData : new TextDecoder().decode(doneData);
 
     const todoItems = parseRebaseTodo(todoText);
     const doneItems = parseRebaseTodo(doneText);

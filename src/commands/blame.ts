@@ -176,6 +176,7 @@ async function getFileAtCommit({
 
     // Read file content
     const { object } = await _readObject({
+      cache,
       fs: fs as any,
       gitdir,
       oid: fileOid
@@ -218,6 +219,7 @@ async function getCommitHistory({
       if (entries[0] && !seen.has(entries[0].oid)) {
         seen.add(entries[0].oid);
         const commit = await parseCommit({
+          cache,
           fs,
           gitdir,
           oid: entries[0].oid
@@ -234,15 +236,18 @@ async function getCommitHistory({
  * Parse commit object
  */
 async function parseCommit({
+  cache,
   fs,
   gitdir,
   oid
 }: {
+  cache: Cache;
   fs: FileSystem;
   gitdir: string;
   oid: string;
 }): Promise<CommitInfo> {
   const { object } = await _readObject({
+    cache,
     fs: fs as any,
     gitdir,
     oid
@@ -393,18 +398,6 @@ async function processBlameHistory({
         } else if (edit.type === "delete") {
           // Lines deleted - we'll need to track which lines moved
           parentLineOffset += edit.oldEnd - edit.oldStart;
-        } else if (edit.type === "replace") {
-          // Lines modified - treat new lines as added by this commit
-          for (let j = edit.newStart; j < edit.newEnd; j++) {
-            const lineNum = j + 1;
-            const blame = lineBlames.find(b => b.lineNumber === lineNum);
-            if (blame && (!blame.commit || blame.commit.oid === latestCommit.oid)) {
-              blame.commit = commit;
-              blame.originalLine = j + 1;
-            }
-          }
-          parentLineOffset += edit.oldEnd - edit.oldStart;
-          currentLineOffset += edit.newEnd - edit.newStart;
         }
 
         parentLineOffset = edit.oldEnd;
@@ -520,10 +513,6 @@ async function findLineOrigin({
       return { commit: currentCommit, originalLine: lineNumber };
     }
 
-    if (edit.type === "replace" && lineInEditRange) {
-      // Line was modified in this commit
-      return { commit: currentCommit, originalLine: lineNumber };
-    }
 
     if (lineNumber <= currentOffset + (edit.newStart - currentOffset)) {
       // Line is before this edit - map to parent

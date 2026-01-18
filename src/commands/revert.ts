@@ -62,10 +62,10 @@ export async function _revert({
   const commitOid = await _resolveRef({ cache, fs, gitdir, ref: oid }) || oid;
 
   // Verify it's a commit
-  const { type, object } = await _readObject({ fs: fs as any, gitdir, oid: commitOid });
+  const { type, object } = await _readObject({ cache, fs: fs as any, gitdir, oid: commitOid });
 
   if (type !== "commit") {
-    throw new ObjectTypeError(commitOid, type || "unknown", "commit");
+    throw new ObjectTypeError(commitOid, (type || "unknown") as "blob" | "commit" | "tag" | "tree", "commit");
   }
 
   // Parse commit
@@ -222,7 +222,7 @@ function parseCommit(object: Uint8Array): {
  * Create a reverse patch (from commit to parent)
  */
 async function createReversePatch({
-  // cache,
+  cache,
   fs,
   gitdir,
   fromOid,
@@ -235,18 +235,30 @@ async function createReversePatch({
   toOid: string;
 }): Promise<any> {
   // Get trees for both commits
-  const fromCommit = await GitCommit.from({ fs: fs as any, gitdir, oid: fromOid });
-  const toCommit = await GitCommit.from({ fs: fs as any, gitdir, oid: toOid });
+  const { object: fromObject } = await _readObject({ cache, fs: fs as any, gitdir, oid: fromOid });
+  const { object: toObject } = await _readObject({ cache, fs: fs as any, gitdir, oid: toOid });
+  
+  const fromCommit = GitCommit.from(fromObject);
+  const toCommit = GitCommit.from(toObject);
+  const fromParsed = fromCommit.parse();
+  const toParsed = toCommit.parse();
 
-  const fromTree = await _readTree({ fs, gitdir, oid: fromCommit.tree });
-  const toTree = await _readTree({ fs, gitdir, oid: toCommit.tree });
+  const fromTree = await _readTree({ cache, fs: fs as any, gitdir, oid: fromParsed.tree });
+  const toTree = await _readTree({ cache, fs: fs as any, gitdir, oid: toParsed.tree });
 
   // Get file lists from both trees
-  const fromFiles = await flattenTree(fromTree, fs, gitdir);
-  const toFiles = await flattenTree(toTree, fs, gitdir);
+  const fromFiles = await flattenTree(cache, fromTree, fs, gitdir);
+  const toFiles = await flattenTree(cache, toTree, fs, gitdir);
 
   // Build reverse patch - from 'to' back to 'from'
-  const files = [];
+  const files: Array<{
+    filepath: string;
+    status: string;
+    oldMode: string | null;
+    oldOid: string | null;
+    newMode: string | null;
+    newOid: string | null;
+  }> = [];
   const allPaths = new Set([...fromFiles.keys(), ...toFiles.keys()]);
 
   for (const filepath of allPaths) {
@@ -293,6 +305,7 @@ async function createReversePatch({
  * Flatten a tree into a map of filepath -> {oid, mode}
  */
 async function flattenTree(
+  cache: Cache,
   tree: any,
   fs: FileSystem,
   gitdir: string,
@@ -305,8 +318,8 @@ async function flattenTree(
 
     if (entry.type === "tree") {
       // Recursively flatten subtree
-      const subtree = await _readTree({ fs, gitdir, oid: entry.oid });
-      const subFiles = await flattenTree(subtree, fs, gitdir, filepath);
+      const subtree = await _readTree({ cache, fs: fs as any, gitdir, oid: entry.oid });
+      const subFiles = await flattenTree(cache, subtree, fs, gitdir, filepath);
       for (const [path, info] of subFiles) {
         files.set(path, info);
       }
@@ -348,13 +361,14 @@ async function applyReversePatch({
             // File was added in original commit, so add it back in revert
             if (file.newOid && file.newMode) {
               const { object } = await _readObject({
+                cache,
                 fs: fs as any,
                 gitdir,
                 oid: file.newOid
               });
               await fs.writeFile(filepath, object);
               const stats = await fs.lstat(filepath);
-              index.insert({ filepath: file.filepath, oid: file.newOid, stats });
+              index.insert({ filepath: file.filepath, oid: file.newOid, stats: stats as any });
             }
           } else if (file.status === 'delete') {
             // File was deleted in original commit, so delete it in revert
@@ -368,13 +382,14 @@ async function applyReversePatch({
             // File was modified in original commit, so restore to previous state
             if (file.newOid && file.newMode) {
               const { object } = await _readObject({
+                cache,
                 fs: fs as any,
                 gitdir,
                 oid: file.newOid
               });
               await fs.writeFile(filepath, object);
               const stats = await fs.lstat(filepath);
-              index.insert({ filepath: file.filepath, oid: file.newOid, stats });
+              index.insert({ filepath: file.filepath, oid: file.newOid, stats: stats as any });
             }
           }
         } catch (error) {
@@ -416,7 +431,7 @@ async function createRevertCommit({
     { cache, fs: fs as any, gitdir },
     async (index) => {
       // Write tree from index
-      treeOid = await index.writeTree({ fs: fs as any, gitdir });
+      treeOid = await (index as any).writeTree({ fs: fs as any, gitdir });
     }
   );
 

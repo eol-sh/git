@@ -27,7 +27,7 @@ export function deflate(buffer: Uint8Array): Promise<Uint8Array> {
 
 async function browserDeflate(buffer: Uint8Array): Promise<Uint8Array> {
   const cs = new CompressionStream("deflate");
-  const c = new Blob([buffer]).stream().pipeThrough(cs);
+  const c = new Blob([new Uint8Array(buffer)]).stream().pipeThrough(cs);
 
   return new Uint8Array(await new Response(c).arrayBuffer());
 }

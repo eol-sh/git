@@ -98,7 +98,7 @@ export async function* _logGenerator({
           // File doesn't exist at current path, check if it was renamed
           const renamedPath = await detectFileRename({
             cache,
-            fs,
+            fs: fs as any,
             gitdir,
             fromCommit: commit.commit,
             toCommit: lastCommit.commit,
@@ -165,8 +165,8 @@ async function detectFileRename({
 }): Promise<string | null> {
   try {
     // Get trees for both commits
-    const fromTree = await _readTree({ fs, gitdir, oid: fromCommit.tree });
-    // const toTree = await _readTree({ fs, gitdir, oid: toCommit.tree });
+    const fromTree = await _readTree({ fs: fs as any, gitdir, oid: fromCommit.tree });
+    // const toTree = await _readTree({ fs: fs as any, gitdir, oid: toCommit.tree });
 
     // Flatten both trees to get all file paths and OIDs
     const fromFiles = await flattenTreeForRename(fromTree, fs, gitdir);
@@ -202,7 +202,7 @@ async function flattenTreeForRename(
     const filepath = prefix ? `${prefix}/${entry.path}` : entry.path;
 
     if (entry.type === "tree") {
-      const subtree = await _readTree({ fs, gitdir, oid: entry.oid });
+      const subtree = await _readTree({ fs: fs as any, gitdir, oid: entry.oid });
       const subFiles = await flattenTreeForRename(subtree, fs, gitdir, filepath);
       for (const [path, oid] of subFiles) {
         files.set(path, oid);

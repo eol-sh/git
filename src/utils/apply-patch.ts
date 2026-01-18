@@ -46,7 +46,7 @@ export function applyPatch(
   const lines = splitLines(originalContent);
   const result: string[] = [];
   let lineIndex = 0;
-  // let conflicts: ConflictMarker[] = [];
+  const conflicts: ConflictMarker[] = [];
 
   for (const hunk of patch.hunks) {
     // Copy lines before the hunk

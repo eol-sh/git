@@ -27,6 +27,7 @@ interface CheckoutOptions {
   dir: string;
   dryRun?: boolean;
   filepaths?: string[];
+  force?: boolean;
   fs: FsInterface;
   gitdir: string;
   noCheckout?: boolean;

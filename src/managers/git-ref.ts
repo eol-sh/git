@@ -99,6 +99,8 @@ export interface WriteRefOptions {
   gitdir: string;
   ref: string;
   value: string;
+  force?: boolean;
+  symbolic?: boolean;
 }
 
 export interface WriteSymbolicRefOptions {

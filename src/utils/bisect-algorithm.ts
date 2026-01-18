@@ -54,7 +54,6 @@ async function getCommitRange(
   state: BisectState,
   options: BisectAlgorithmOptions
 ): Promise<string[]> {
-  const { fs, gitdir } = options;
 
   try {
     // Get commit history from bad to all good commits
@@ -62,10 +61,10 @@ async function getCommitRange(
 
     // Start from bad commit and walk backwards
     const badCommits = await log({
-      cache,
-      dir,
-      fs: fs.promises,
-      gitdir,
+      cache: options.cache,
+      dir: options.dir,
+      fs: options.fs as any,
+      gitdir: options.gitdir,
       ref: state.bad,
       depth: 1000 // Reasonable limit
     });
@@ -73,10 +72,10 @@ async function getCommitRange(
     // For each good commit, find commits reachable from bad but not from good
     for (const goodRef of state.good) {
       const goodCommits = await log({
-        cache,
-        dir,
-        fs: fs.promises,
-        gitdir,
+        cache: options.cache,
+        dir: options.dir,
+        fs: options.fs as any,
+        gitdir: options.gitdir,
         ref: goodRef,
         depth: 1000
       });
@@ -104,6 +103,8 @@ export function checkBisectComplete(state: BisectState): {
   complete: boolean;
   culprit?: string;
   remaining: number;
+  result?: { oid: string };
+  message?: string;
 } {
   // Count untested commits
   // const testedCommits = new Set(state.log.map(entry => entry.oid));
@@ -117,16 +118,21 @@ export function checkBisectComplete(state: BisectState): {
       .filter(entry => entry.result === "bad")
       .sort((a, b) => a.timestamp - b.timestamp);
 
+    const culprit = badEntries.length > 0 ? badEntries[0].oid : state.bad;
     return {
       complete: true,
-      culprit: badEntries.length > 0 ? badEntries[0].oid : state.bad,
-      remaining: 0
+      culprit,
+      remaining: 0,
+      result: { oid: culprit },
+      message: `First bad commit: ${culprit}`
     };
   }
 
   return {
     complete: false,
-    remaining: remainingCount
+    remaining: remainingCount,
+    result: undefined,
+    message: undefined
   };
 }
 

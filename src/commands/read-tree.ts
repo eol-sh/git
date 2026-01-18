@@ -9,7 +9,7 @@ import { resolveTree } from "../utils/resolve-tree.ts";
 import type { FsInterface, TreeEntry } from "../types.ts";
 
 interface ReadTreeOptions {
-  cache: Map<string, any>;
+  cache?: Map<string, any>;
   filepath?: string;
   fs: FsInterface;
   gitdir: string;
@@ -35,10 +35,10 @@ export async function _readTree({
   let resultOid = oid;
 
   if (filepath !== undefined)
-    resultOid = await resolveFilepath({ cache, filepath, fs, gitdir, oid });
+    resultOid = await resolveFilepath({ cache: cache!, filepath, fs, gitdir, oid });
 
   const { oid: treeOid, tree } = await resolveTree({
-    cache,
+    cache: cache!,
     fs,
     gitdir,
     oid: resultOid

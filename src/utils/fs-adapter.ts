@@ -85,6 +85,12 @@ export function adaptFileSystem(fileSystem: FileSystem): FsInterface {
       return stat as any;
     }),
     mkdir: (path: string, _options?: { recursive?: boolean }) => fileSystem.mkdir(path),
+    read: async (path: string) => {
+      const result = await fileSystem.read(path);
+      if (result === null) throw new Error(`File not found: ${path}`);
+      if (typeof result === 'string') return new TextEncoder().encode(result);
+      return result;
+    },
     readdir: (path: string) => fileSystem.readdir(path).then(result => result || []),
     readFile: (path: string) => fileSystem.read(path).then(result => {
       if (!result)
@@ -95,6 +101,12 @@ export function adaptFileSystem(fileSystem: FileSystem): FsInterface {
 
       return result;
     }),
+    rm: (path: string, options?: { recursive?: boolean; force?: boolean }) => {
+      if (options?.recursive) {
+        return fileSystem.rmdir(path);
+      }
+      return fileSystem.rm(path);
+    },
     rmdir: (path: string) => fileSystem.rmdir(path),
     stat: (path: string) => fileSystem.lstat(path).then(stat => {
       if (stat === null)
@@ -153,17 +165,17 @@ export function adaptFsInterface(fs: FsInterface): any {
       async function readRecursive(currentPath: string, basePath: string = ""): Promise<void> {
         try {
           const entries = await fs.readdir(currentPath);
-          const entriesArray = Array.isArray(entries) ? entries : [entries];
+          const entriesArray = Array.isArray(entries) ? entries : [];
           
           for (const entry of entriesArray) {
-            const entryName = typeof entry === "string" ? entry : (entry as Deno.DirEntry).name;
+            const entryName = typeof entry === "string" ? entry : (entry as any).name;
             const fullPath = currentPath === dirpath ? entryName : `${basePath}/${entryName}`;
             const absolutePath = `${currentPath}/${entryName}`;
             
             try {
               const stat = await fs.lstat(absolutePath);
               
-              if (stat.isDirectory()) {
+              if (stat && typeof (stat as any).isDirectory === 'function' && (stat as any).isDirectory()) {
                 // Recursively process subdirectory
                 await readRecursive(absolutePath, fullPath);
               } else {

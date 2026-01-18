@@ -27,7 +27,7 @@ export function inflate(buffer: Uint8Array): Promise<Uint8Array> {
 
 async function browserInflate(buffer: Uint8Array): Promise<Uint8Array> {
   const ds = new DecompressionStream("deflate");
-  const d = new Blob([buffer]).stream().pipeThrough(ds);
+  const d = new Blob([new Uint8Array(buffer)]).stream().pipeThrough(ds);
 
   return new Uint8Array(await new Response(d).arrayBuffer());
 }

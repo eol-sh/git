@@ -81,7 +81,7 @@ export async function readObjectPacked({
       if (!p.pack) {
         const packFile = indexFile.replace(/idx$/, "pack");
         try {
-          p.pack = await fs.readFile(packFile);
+          (p as any).pack = await fs.readFile(packFile);
         } catch (error) {
           throw new InternalError(`Failed to read packfile ${packFile}: ${error}`);
         }

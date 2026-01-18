@@ -31,7 +31,7 @@ export async function request({
 
   const res = await fetch(url, { body, headers, method });
 
-  const iter = res.body && res.body.getReader ?
+  const iter = res.body && typeof res.body.getReader === 'function' ?
     fromStream(res.body) :
     [new Uint8Array(await res.arrayBuffer())];
 
@@ -45,7 +45,7 @@ export async function request({
   return {
     body: iter,
     headers: headers,
-    method: res.method,
+    method: method,
     statusCode: res.status,
     statusMessage: res.statusText,
     url: res.url

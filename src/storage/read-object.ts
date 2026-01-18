@@ -16,7 +16,7 @@ import type { FsInterface } from "../types.ts";
 type ReadObjectFormat = "content" | "deflated" | "wrapped";
 
 interface ReadObjectOptions {
-  cache: Map<string, unknown>;
+  cache?: Map<string, unknown>;
   format?: ReadObjectFormat;
   fs: FsInterface;
   gitdir: string;
@@ -57,10 +57,10 @@ export async function _readObject({
     result = await readObjectLoose({ fs, gitdir, oid });
   }
 
-  /*** Check to see if it’s in a packfile. ***/
+  /*** Check to see if it's in a packfile. ***/
   if (!result) {
     result = await readObjectPacked({
-      cache,
+      cache: cache || new Map(),
       format,
       fs,
       gitdir,

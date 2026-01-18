@@ -77,8 +77,10 @@ export interface HttpClient {
 export interface FsInterface {
   lstat: (path: string) => Promise<Deno.FileInfo>;
   mkdir: (path: string, options?: { recursive?: boolean }) => Promise<void>;
+  read: (path: string) => Promise<Uint8Array>;
   readdir: (path: string) => AsyncIterable<Deno.DirEntry> | Promise<string[]>;
   readFile: (path: string) => Promise<Uint8Array>;
+  rm: (path: string, options?: { recursive?: boolean; force?: boolean }) => Promise<void>;
   rmdir: (path: string) => Promise<void>;
   stat: (path: string) => Promise<Deno.FileInfo>;
   unlink: (path: string) => Promise<void>;
@@ -218,7 +220,7 @@ export type ProgressCallback = OnProgressCallback;
 export type SignCallback = OnSignCallback;
 
 /*** Legacy type aliases for compatibility ***/
-export type Cache = Map<string, any>;
+export type Cache = Map<string, unknown>;
 export type FsClient = FsInterface;
 
 export interface FetchResult {

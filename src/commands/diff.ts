@@ -201,10 +201,10 @@ async function getTreeForRef({
   }
 
   // Read commit object
-  const { type, object } = await _readObject({ fs, gitdir, oid });
+  const { type, object } = await _readObject({ fs: fs as any, gitdir, oid });
 
   if (type !== "commit") {
-    throw new ObjectTypeError(oid, type, "commit");
+    throw new ObjectTypeError(oid, (type as "blob" | "commit" | "tag" | "tree") || "blob", "commit");
   }
 
   // Parse commit to get tree oid
@@ -218,7 +218,8 @@ async function getTreeForRef({
   const treeOid = match[1];
 
   // Read and return tree
-  return await _readTree({ fs, gitdir, oid: treeOid });
+  const treeResult = await _readTree({ cache, fs: fs as any, gitdir, oid: treeOid });
+  return GitTree.from(treeResult.tree);
 }
 
 /**
@@ -288,34 +289,36 @@ async function scanWorkingDirectory(
   try {
     const dirEntries = await fs.readdir(fullPath);
 
-    for (const entryName of dirEntries) {
-      // Skip .git directory
-      if (entryName === ".git") {
-        continue;
-      }
+    if (dirEntries) {
+      for (const entryName of dirEntries) {
+        // Skip .git directory
+        if (entryName === ".git")
+          continue;
 
-      const entryRelativePath = relativePath ? join(relativePath, entryName) : entryName;
-      const entryFullPath = join(fullPath, entryName);
+        const entryRelativePath = relativePath ? join(relativePath, entryName) : entryName;
+        const entryFullPath = join(fullPath, entryName);
 
-      try {
-        const stat = await fs.lstat(entryFullPath);
-        if (stat && stat.isFile()) {
-          // Read file content and calculate hash
-          const content = await fs.read(entryFullPath) as Uint8Array;
-          const oid = await calculateBlobHash(content);
+        try {
+          const stat = await fs.lstat(entryFullPath);
 
-          entries.push({
-            mode: "100644",
-            path: entryRelativePath,
-            oid: oid,
-            type: "blob"
-          });
-        } else if (stat && stat.isDirectory()) {
-          // Recursively scan subdirectory
-          await scanWorkingDirectory(fs, baseDir, entryRelativePath, entries, gitdir);
+          if (stat && stat.isFile()) {
+            // Read file content and calculate hash
+            const content = await fs.read(entryFullPath) as Uint8Array;
+            const oid = await calculateBlobHash(content);
+
+            entries.push({
+              mode: "100644",
+              oid,
+              path: entryRelativePath,
+              type: "blob"
+            });
+          } else if (stat && stat.isDirectory()) {
+            // Recursively scan subdirectory
+            await scanWorkingDirectory(fs, baseDir, entryRelativePath, entries, gitdir);
+          }
+        } catch {
+          // Skip inaccessible entries
         }
-      } catch {
-        // Skip inaccessible entries
       }
     }
   } catch {
@@ -382,10 +385,10 @@ async function getFileContent({
   gitdir: string;
   oid: string;
 }): Promise<string> {
-  const { type, object } = await _readObject({ fs, gitdir, oid });
+  const { type, object } = await _readObject({ fs: fs as any, gitdir, oid });
 
   if (type !== "blob") {
-    throw new ObjectTypeError(oid, type, "blob");
+    throw new ObjectTypeError(oid, (type as "blob" | "commit" | "tag" | "tree") || "blob", "blob");
   }
 
   return new TextDecoder().decode(object);

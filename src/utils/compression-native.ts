@@ -46,7 +46,7 @@ export async function deflate(data: Uint8Array, format: "deflate" | "gzip" = "de
 
     /*** Write data and close ***/
     try {
-      await writer.write(data);
+      await writer.write(new Uint8Array(data));
       await writer.close();
     } finally {
       /*** Ensure writer is released ***/
@@ -138,7 +138,7 @@ export async function inflate(data: Uint8Array, format: "deflate" | "gzip" = "de
 
     /*** Write data and close ***/
     try {
-      await writer.write(data);
+      await writer.write(new Uint8Array(data));
       await writer.close();
     } finally {
       /*** Ensure writer is released ***/

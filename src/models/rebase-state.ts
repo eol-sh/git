@@ -51,6 +51,7 @@ export interface RebaseResult {
   oid?: string;
   conflicts?: string[];
   aborted?: boolean;
+  paused?: boolean;
   message?: string;
 }
 

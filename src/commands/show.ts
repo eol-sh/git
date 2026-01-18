@@ -49,7 +49,8 @@ export async function _show({
   }
 
   if (!objectOid) {
-    objectOid = await _resolveRef({ cache, fs, gitdir, ref: "HEAD" });
+    const resolved = await _resolveRef({ cache, fs, gitdir, ref: "HEAD" });
+    objectOid = resolved ?? undefined;
     if (!objectOid) {
       throw new NotFoundError("HEAD");
     }

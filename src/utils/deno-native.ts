@@ -41,7 +41,7 @@ export const compression = {
       })();
 
       /*** Write data and close ***/
-      await writer.write(data);
+      await writer.write(new Uint8Array(data));
       await writer.close();
 
       const chunks = await readPromise;
@@ -89,7 +89,7 @@ export const compression = {
       })();
 
       // Write data and close
-      await writer.write(data);
+      await writer.write(new Uint8Array(data));
       await writer.close();
 
       const chunks = await readPromise;
@@ -127,7 +127,7 @@ export const crypto = {
       encoder.encode(data) :
       data;
 
-    return await globalThis.crypto.subtle.digest("SHA-1", dataBuffer as ArrayBuffer | DataView | Uint8Array);
+    return await globalThis.crypto.subtle.digest("SHA-1", new Uint8Array(dataBuffer));
   },
   /*** SHA-256 implementation ***/
   sha256: async(data: Uint8Array | string): Promise<ArrayBuffer> => {
@@ -137,7 +137,7 @@ export const crypto = {
       encoder.encode(data) :
       data;
 
-    return await globalThis.crypto.subtle.digest("SHA-256", dataBuffer as ArrayBuffer | DataView | Uint8Array);
+    return await globalThis.crypto.subtle.digest("SHA-256", new Uint8Array(dataBuffer));
   }
 };
 

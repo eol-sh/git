@@ -13,12 +13,17 @@ export function fromStream<T>(stream: ReadableStream<T>): AsyncIterable<T> & Asy
   const reader = stream.getReader();
 
   return {
-    next() {
-      return reader.read();
+    async next() {
+      const result = await reader.read();
+      // Ensure value is always present for IteratorResult compatibility
+      if (result.done) {
+        return { done: true, value: undefined } as IteratorReturnResult<any>;
+      }
+      return result as IteratorYieldResult<T>;
     },
     return() {
       reader.releaseLock();
-      return Promise.resolve({ done: true, value: undefined });
+      return Promise.resolve({ done: true, value: undefined } as IteratorReturnResult<any>);
     },
     [Symbol.asyncIterator]() {
       return this;

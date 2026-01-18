@@ -78,7 +78,7 @@ export async function _cherryPick({
   committer
 }: CherryPickOptions): Promise<string | null> {
   // Get the commit to cherry-pick
-  const commitInfo = await getCommitInfo({ fs, gitdir, oid });
+  const commitInfo = await getCommitInfo({ cache, fs, gitdir, oid });
 
   // Handle merge commits
   if (commitInfo.parent.length > 1 && mainline === undefined) {
@@ -103,14 +103,14 @@ export async function _cherryPick({
   }
 
   // Get trees for all three commits
-  const parentTree = await getCommitTree({ fs, gitdir, oid: parentOid });
-  const cherryTree = await getCommitTree({ fs, gitdir, oid });
-  const headTree = await getCommitTree({ fs, gitdir, oid: headOid });
+  const parentTree = await getCommitTree({ cache, fs, gitdir, oid: parentOid });
+  const cherryTree = await getCommitTree({ cache, fs, gitdir, oid });
+  const headTree = await getCommitTree({ cache, fs, gitdir, oid: headOid });
 
   // Get file lists from trees
-  const parentFiles = await getTreeFiles({ fs, gitdir, tree: parentTree });
-  const cherryFiles = await getTreeFiles({ fs, gitdir, tree: cherryTree });
-  const headFiles = await getTreeFiles({ fs, gitdir, tree: headTree });
+  const parentFiles = await getTreeFiles({ cache, fs, gitdir, tree: parentTree });
+  const cherryFiles = await getTreeFiles({ cache, fs, gitdir, tree: cherryTree });
+  const headFiles = await getTreeFiles({ cache, fs, gitdir, tree: headTree });
 
   // Find all affected files
   const allFiles = new Set<string>();
@@ -133,8 +133,8 @@ export async function _cherryPick({
           // File was added in cherry-pick commit
           if (headFile) {
             // File exists in HEAD - potential conflict
-            const headContent = await getFileContent({ fs, gitdir, oid: headFile.oid });
-            const cherryContent = await getFileContent({ fs, gitdir, oid: cherryFile.oid });
+            const headContent = await getFileContent({ cache, fs, gitdir, oid: headFile.oid });
+            const cherryContent = await getFileContent({ cache, fs, gitdir, oid: cherryFile.oid });
 
             if (headContent !== cherryContent) {
               conflicts.push(filepath);
@@ -160,9 +160,9 @@ export async function _cherryPick({
             conflicts.push(filepath);
           } else {
             // Apply the change
-            const parentContent = await getFileContent({ fs, gitdir, oid: parentFile.oid });
-            const cherryContent = await getFileContent({ fs, gitdir, oid: cherryFile.oid });
-            const headContent = await getFileContent({ fs, gitdir, oid: headFile.oid });
+            const parentContent = await getFileContent({ cache, fs, gitdir, oid: parentFile.oid });
+            const cherryContent = await getFileContent({ cache, fs, gitdir, oid: cherryFile.oid });
+            const headContent = await getFileContent({ cache, fs, gitdir, oid: headFile.oid });
 
             // Three-way merge
             const mergeResult = threeWayMerge(parentContent, headContent, cherryContent);
@@ -246,18 +246,20 @@ export async function _cherryPick({
  * Get commit information
  */
 async function getCommitInfo({
+  cache,
   fs,
   gitdir,
   oid
 }: {
+  cache: Cache;
   fs: FileSystem;
   gitdir: string;
   oid: string;
 }): Promise<CommitInfo> {
-  const { type, object } = await _readObject({ fs: fs as any, gitdir, oid });
+  const { type, object } = await _readObject({ cache, fs: fs as any, gitdir, oid });
 
   if (type !== "commit") {
-    throw new ObjectTypeError(oid, type || "unknown", "commit");
+    throw new ObjectTypeError(oid, (type as "blob" | "commit" | "tag" | "tree") || "blob", "commit");
   }
 
   const text = new TextDecoder().decode(object);
@@ -329,15 +331,17 @@ function parseTimezoneOffset(offset: string): number {
  * Get tree OID from commit
  */
 async function getCommitTree({
+  cache,
   fs,
   gitdir,
   oid
 }: {
+  cache: Cache;
   fs: FileSystem;
   gitdir: string;
   oid: string;
 }): Promise<string> {
-  const info = await getCommitInfo({ fs, gitdir, oid });
+  const info = await getCommitInfo({ cache, fs, gitdir, oid });
   return info.tree;
 }
 
@@ -345,35 +349,39 @@ async function getCommitTree({
  * Get files from tree
  */
 async function getTreeFiles({
+  cache,
   fs,
   gitdir,
   tree
 }: {
+  cache: Cache;
   fs: FileSystem;
   gitdir: string;
   tree: string;
 }): Promise<Array<{ path: string; oid: string; mode: string }>> {
-  return await flattenTreeRecursive({ fs, gitdir, tree, prefix: "" });
+  return await flattenTreeRecursive({ cache, fs, gitdir, tree, prefix: "" });
 }
 
 /**
  * Recursively flatten a tree including all nested subtrees
  */
 async function flattenTreeRecursive({
+  cache,
   fs,
   gitdir,
   tree,
   prefix
 }: {
+  cache: Cache;
   fs: FileSystem;
   gitdir: string;
   tree: string;
   prefix: string;
 }): Promise<Array<{ path: string; oid: string; mode: string }>> {
-  const treeObj = await _readTree({ fs: fs as any, gitdir, oid: tree });
+  const treeObj = await _readTree({ cache, fs: fs as any, gitdir, oid: tree });
   const files: Array<{ path: string; oid: string; mode: string }> = [];
 
-  for (const entry of treeObj.entries()) {
+  for (const entry of treeObj.tree) {
     const fullPath = prefix ? `${prefix}/${entry.path}` : entry.path;
 
     if (entry.type === "blob") {
@@ -385,6 +393,7 @@ async function flattenTreeRecursive({
     } else if (entry.type === "tree") {
       // Recursively process subtree
       const subFiles = await flattenTreeRecursive({
+        cache,
         fs,
         gitdir,
         tree: entry.oid,
@@ -401,15 +410,17 @@ async function flattenTreeRecursive({
  * Get file content
  */
 async function getFileContent({
+  cache,
   fs,
   gitdir,
   oid
 }: {
+  cache: Cache;
   fs: FileSystem;
   gitdir: string;
   oid: string;
 }): Promise<string> {
-  const { object } = await _readObject({ fs: fs as any, gitdir, oid });
+  const { object } = await _readObject({ cache, fs: fs as any, gitdir, oid });
   return new TextDecoder().decode(object);
 }
 
@@ -428,7 +439,7 @@ async function updateIndex(
   index.insert({
     filepath,
     oid,
-    stats: stats ? normalizeStats(stats) : {
+    stats: stats ? normalizeStats(stats as any) : {
       ctime: new Date(0),
       mtime: new Date(0),
       dev: 0,
@@ -456,7 +467,7 @@ async function writeTreeFromIndex({
   dir: string;
 }): Promise<string> {
   // Get the current working tree files
-  const entries = [];
+  const entries: { path: string; type: 'file' | 'directory' }[] = [];
 
   // For simplicity, we'll scan the working directory and create tree entries
   // In a full implementation, this would read from the actual Git index
@@ -466,7 +477,7 @@ async function writeTreeFromIndex({
   const filteredEntries = entries.filter(entry => !entry.path.startsWith(".git"));
 
   // Convert to tree entries format
-  const treeEntries = [];
+  const treeEntries: Array<{ mode: string; path: string; oid: string; type: "blob" | "commit" | "tree" }> = [];
 
   for (const entry of filteredEntries) {
     try {
@@ -476,21 +487,15 @@ async function writeTreeFromIndex({
       if (stat && stat.isFile()) {
         // Read file content and get hash
         const content = await fs.read(fullPath) as Uint8Array;
-        const oid = await hashBlob({
-          fs: {
-            readdir: fs.readdir.bind(fs),
-            lstat: fs.lstat.bind(fs),
-            readFile: () => Promise.resolve(content)
-          },
-          gitdir,
+        const hashResult = await hashBlob({
           object: content
         });
 
         treeEntries.push({
           mode: "100644", // Regular file mode
           path: entry.path,
-          oid,
-          type: "blob"
+          oid: hashResult.oid,
+          type: "blob" as "blob" | "commit" | "tree"
         });
       }
     } catch {
@@ -499,20 +504,11 @@ async function writeTreeFromIndex({
     }
   }
 
-  // Create tree object
-  const treeObject = {
-    entries: treeEntries
-  };
-
   // Write the tree
   return await _writeTree({
-    fs: {
-      readdir: fs.readdir.bind(fs),
-      lstat: fs.lstat.bind(fs),
-      writeFile: fs.write.bind(fs)
-    },
+    fs: fs as any,
     gitdir,
-    tree: treeObject
+    tree: treeEntries
   });
 }
 
@@ -530,24 +526,25 @@ async function scanDirectory(
   try {
     const dirEntries = await fs.readdir(fullPath);
 
-    for (const entryName of dirEntries) {
-      // Skip .git directory
-      if (entryName === ".git") {
-        continue;
-      }
+    if (dirEntries) {
+      for (const entryName of dirEntries) {
+        // Skip .git directory
+        if (entryName === ".git")
+          continue;
 
-      const entryRelativePath = relativePath ? join(relativePath, entryName) : entryName;
-      const entryFullPath = join(fullPath, entryName);
+        const entryRelativePath = relativePath ? join(relativePath, entryName) : entryName;
+        const entryFullPath = join(fullPath, entryName);
 
-      try {
-        const stat = await fs.lstat(entryFullPath);
-        if (stat && stat.isFile()) {
-          entries.push({ path: entryRelativePath });
-        } else if (stat && stat.isDirectory()) {
-          await scanDirectory(fs, baseDir, entryRelativePath, entries);
+        try {
+          const stat = await fs.lstat(entryFullPath);
+
+          if (stat && stat.isFile())
+            entries.push({ path: entryRelativePath });
+          else if (stat && stat.isDirectory())
+            await scanDirectory(fs, baseDir, entryRelativePath, entries);
+        } catch {
+          // Skip inaccessible entries
         }
-      } catch {
-        // Skip inaccessible entries
       }
     }
   } catch {
@@ -589,8 +586,8 @@ async function createCommit({
   return await _writeObject({
     fs: fs as any,
     gitdir,
-    type: "commit",
-    object: new TextEncoder().encode(commitText)
+    object: new TextEncoder().encode(commitText),
+    type: "commit"
   });
 }
 
@@ -602,6 +599,7 @@ function formatTimezoneOffset(offset: number): string {
   const absOffset = Math.abs(offset);
   const hours = Math.floor(absOffset / 60);
   const minutes = absOffset % 60;
+
   return `${sign}${hours.toString().padStart(2, "0")}${minutes.toString().padStart(2, "0")}`;
 }
 
