@@ -1,4 +1,15 @@
-
+/**
+ * @fileoverview has-object-loose storage operations
+ *
+ * Low-level storage operations for has-object-loose including reading,
+ * writing, and managing Git objects on the file system.
+ *
+ * @module storage/has-object-loose.ts
+ * @version 1.0.0
+ * @author EOL Git Implementation
+ * @since 1.0.0
+ * @internal
+ */
 
 
 //// util

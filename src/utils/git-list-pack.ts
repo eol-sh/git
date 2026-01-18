@@ -1,4 +1,14 @@
-// My version of git-list-pack - roughly 15x faster than the original
+/**
+ * @fileoverview git-list-pack utility functions
+ *
+ * Utility functions for git-list-pack operations used throughout
+ * the Git implementation for common tasks and transformations.
+ *
+ * @module utils/git-list-pack.ts
+ * @version 1.0.0
+ * @author EOL Git Implementation
+ * @since 1.0.0
+ */// My version of git-list-pack - roughly 15x faster than the original
 // It’s used slightly differently - instead of returning a through stream it wraps a stream.
 // (I tried to make it API identical, but that ended up being 2x slower than this version.)
 

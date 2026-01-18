@@ -1,4 +1,14 @@
-
+/**
+ * @fileoverview resolve-blob utility functions
+ *
+ * Utility functions for resolve-blob operations used throughout
+ * the Git implementation for common tasks and transformations.
+ *
+ * @module utils/resolve-blob.ts
+ * @version 1.0.0
+ * @author EOL Git Implementation
+ * @since 1.0.0
+ */
 
 
 //// util

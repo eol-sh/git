@@ -1,6 +1,21 @@
 
 
 
+/**
+ * @fileoverview Remote capability error implementation
+ * 
+ * This error is thrown when attempting to use a Git capability that
+ * is not supported by the remote server. This typically occurs when
+ * trying to use advanced features like shallow cloning or specific
+ * depth parameters with servers that don't support them.
+ * 
+ * @module errors/remote-capability
+ * @version 1.0.0
+ * @author EOL Git Implementation
+ * @since 1.0.0
+ */
+
+
 //// util
 
 import { BaseError } from "./base.ts";

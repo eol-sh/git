@@ -1,4 +1,14 @@
-
+/**
+ * @fileoverview shasum utility functions
+ *
+ * Utility functions for shasum operations used throughout
+ * the Git implementation for common tasks and transformations.
+ *
+ * @module utils/shasum.ts
+ * @version 1.0.0
+ * @author EOL Git Implementation
+ * @since 1.0.0
+ */
 
 
 //// util

@@ -1,4 +1,15 @@
-
+/**
+ * @fileoverview expand-oid-loose storage operations
+ *
+ * Low-level storage operations for expand-oid-loose including reading,
+ * writing, and managing Git objects on the file system.
+ *
+ * @module storage/expand-oid-loose.ts
+ * @version 1.0.0
+ * @author EOL Git Implementation
+ * @since 1.0.0
+ * @internal
+ */
 
 
 //// util

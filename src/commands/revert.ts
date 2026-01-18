@@ -1,4 +1,15 @@
 /**
+ * @fileoverview Git revert command implementation
+ *
+ * Internal implementation of the revert Git operation. This module contains
+ * the core logic and should not be used directly - use the API layer instead.
+ *
+ * @module commands/revert.ts
+ * @version 1.0.0
+ * @author EOL Git Implementation
+ * @since 1.0.0
+ * @internal
+ *//**
  * Core revert command implementation
  * Creates a commit that undoes changes from a previous commit
  */

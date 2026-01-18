@@ -1,6 +1,22 @@
 
 
 
+/**
+ * @fileoverview Command for finding common ancestors between Git commits
+ * 
+ * This module implements Git's merge-base functionality to find common ancestors
+ * between multiple commits. Using a multi-walker algorithm that traverses the
+ * commit history backwards from each specified commit, it identifies the most
+ * recent common ancestors. The implementation supports finding all merge bases
+ * between multiple commits, equivalent to git merge-base --all --octopus, and
+ * handles complex merge scenarios with proper ancestor tracking.
+ * 
+ * @module commands/find-merge-base
+ * @version 1.0.0
+ * @author EOL Git Implementation
+ * @since 1.0.0
+ */
+
 //// util
 
 import { GitCommit } from "../models/git-commit.ts";

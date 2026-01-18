@@ -1,4 +1,13 @@
-
+/**
+ * @fileoverview typedefs implementation
+ *
+ * Implementation of typedefs functionality for the Git system.
+ *
+ * @module typedefs.ts
+ * @version 1.0.0
+ * @author EOL Git Implementation
+ * @since 1.0.0
+ */
 
 
 //// util

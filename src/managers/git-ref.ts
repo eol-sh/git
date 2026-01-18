@@ -1,4 +1,14 @@
-
+/**
+ * @fileoverview git-ref manager
+ *
+ * Manages git-ref resources including creation, access, and lifecycle.
+ * Provides centralized control and caching for git-ref operations.
+ *
+ * @module managers/git-ref.ts
+ * @version 1.0.0
+ * @author EOL Git Implementation
+ * @since 1.0.0
+ */
 
 
 //// util

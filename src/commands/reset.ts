@@ -1,6 +1,14 @@
 /**
- * Core reset command implementation
- * Implements soft, mixed, and hard reset modes
+ * @fileoverview Command for Git reset operations to move HEAD and modify staging/working tree
+ * 
+ * Implements Git's reset functionality with support for soft, mixed, and hard
+ * reset modes. Manages HEAD movement, index updates, and working directory
+ * changes based on the reset mode selected.
+ * 
+ * @module commands/reset
+ * @version 1.0.0
+ * @author EOL Git Implementation
+ * @since 1.0.0
  */
 
 import { _checkout } from "../commands/checkout.ts";

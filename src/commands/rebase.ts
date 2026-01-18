@@ -1,6 +1,14 @@
 /**
- * Core rebase command implementation
- * Reapplies commits from one branch onto another
+ * @fileoverview Command for Git rebase operations to reapply commits
+ * 
+ * Implements Git's rebase functionality for rewriting commit history by
+ * reapplying commits from one branch onto another. Supports interactive
+ * rebase, conflict resolution, and maintaining commit relationships.
+ * 
+ * @module commands/rebase
+ * @version 1.0.0
+ * @author EOL Git Implementation
+ * @since 1.0.0
  */
 
 import { _cherryPick } from "../commands/cherry-pick.ts";

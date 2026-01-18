@@ -1,5 +1,19 @@
 
 
+/**
+ * @fileoverview Merge not supported error implementation
+ * 
+ * This error is thrown when attempting to perform a merge operation that is
+ * not currently supported by the implementation. This typically occurs when
+ * trying to merge changes that have conflicts, as conflict resolution is
+ * not yet implemented.
+ * 
+ * @module errors/merge-not-supported
+ * @version 1.0.0
+ * @author EOL Git Implementation
+ * @since 1.0.0
+ */
+
 
 //// util
 

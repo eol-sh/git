@@ -1,4 +1,15 @@
-
+/**
+ * @fileoverview parse-capabilities-v2 wire protocol implementation
+ *
+ * Handles parse-capabilities-v2 wire protocol operations for Git network
+ * communication including parsing and serialization.
+ *
+ * @module wire/parse-capabilities-v2.ts
+ * @version 1.0.0
+ * @author EOL Git Implementation
+ * @since 1.0.0
+ * @internal
+ */
 
 
 //// export

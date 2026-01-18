@@ -1,4 +1,14 @@
-
+/**
+ * @fileoverview git-ref-spec-set model definition
+ *
+ * Defines the git-ref-spec-set class and related types for representing
+ * Git objects and data structures in the implementation.
+ *
+ * @module models/git-ref-spec-set.ts
+ * @version 1.0.0
+ * @author EOL Git Implementation
+ * @since 1.0.0
+ */
 
 
 //// util

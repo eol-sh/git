@@ -1,4 +1,14 @@
-
+/**
+ * @fileoverview pkg utility functions
+ *
+ * Utility functions for pkg operations used throughout
+ * the Git implementation for common tasks and transformations.
+ *
+ * @module utils/pkg.ts
+ * @version 1.0.0
+ * @author EOL Git Implementation
+ * @since 1.0.0
+ */
 
 
 //// util

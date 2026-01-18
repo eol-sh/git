@@ -1,4 +1,15 @@
-
+/**
+ * @fileoverview write-list-refs-request wire protocol implementation
+ *
+ * Handles write-list-refs-request wire protocol operations for Git network
+ * communication including parsing and serialization.
+ *
+ * @module wire/write-list-refs-request.ts
+ * @version 1.0.0
+ * @author EOL Git Implementation
+ * @since 1.0.0
+ * @internal
+ */
 
 
 //// util

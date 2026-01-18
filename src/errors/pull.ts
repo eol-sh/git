@@ -1,6 +1,21 @@
 
 
 
+/**
+ * @fileoverview Pull error implementation
+ * 
+ * This error is thrown when pull operations fail for various reasons
+ * including missing upstream branches, detached HEAD state, or
+ * configuration issues. It provides specific error messages based
+ * on the failure reason to help users understand what went wrong.
+ * 
+ * @module errors/pull
+ * @version 1.0.0
+ * @author EOL Git Implementation
+ * @since 1.0.0
+ */
+
+
 //// util
 
 import { BaseError } from "./base.ts";

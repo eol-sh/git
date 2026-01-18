@@ -1,5 +1,14 @@
 /**
- * Git bisect command implementation
+ * @fileoverview Command for Git bisect binary search to find problematic commits
+ * 
+ * Implements Git's bisect functionality for finding the commit that introduced
+ * a bug using binary search. Manages bisect state, tracks good/bad commits,
+ * and automatically narrows down the problematic commit through systematic testing.
+ * 
+ * @module commands/bisect
+ * @version 1.0.0
+ * @author EOL Git Implementation
+ * @since 1.0.0
  */
 
 import { FileSystem } from "../models/file-system.ts";

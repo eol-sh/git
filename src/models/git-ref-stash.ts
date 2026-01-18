@@ -1,4 +1,14 @@
-
+/**
+ * @fileoverview git-ref-stash model definition
+ *
+ * Defines the git-ref-stash class and related types for representing
+ * Git objects and data structures in the implementation.
+ *
+ * @module models/git-ref-stash.ts
+ * @version 1.0.0
+ * @author EOL Git Implementation
+ * @since 1.0.0
+ */
 
 
 //// util

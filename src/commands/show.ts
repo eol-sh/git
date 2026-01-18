@@ -1,6 +1,14 @@
 /**
- * Core show command implementation
- * Displays git objects (commits, trees, blobs, tags)
+ * @fileoverview Command for displaying Git objects and their contents
+ * 
+ * Implements Git's show functionality for displaying commits, trees, blobs,
+ * and tags in various formats. Supports multiple output formats including
+ * raw, pretty, oneline, and detailed views of Git objects.
+ * 
+ * @module commands/show
+ * @version 1.0.0
+ * @author EOL Git Implementation
+ * @since 1.0.0
  */
 
 import { _readObject } from "../storage/read-object.ts";

@@ -1,6 +1,21 @@
 
 
 
+/**
+ * @fileoverview Multiple Git error implementation
+ * 
+ * This error is thrown when multiple Git operations fail and multiple
+ * errors need to be reported together. It aggregates multiple error
+ * instances into a single error object for better error handling and
+ * reporting.
+ * 
+ * @module errors/multiple-git
+ * @version 1.0.0
+ * @author EOL Git Implementation
+ * @since 1.0.0
+ */
+
+
 //// util
 
 import { BaseError } from "./base.ts";

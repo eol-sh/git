@@ -1,4 +1,14 @@
-
+/**
+ * @fileoverview flat-file-list-to-directory-structure utility functions
+ *
+ * Utility functions for flat-file-list-to-directory-structure operations used throughout
+ * the Git implementation for common tasks and transformations.
+ *
+ * @module utils/flat-file-list-to-directory-structure.ts
+ * @version 1.0.0
+ * @author EOL Git Implementation
+ * @since 1.0.0
+ */
 
 
 //// util

@@ -1,5 +1,15 @@
-
-
+/**
+ * @fileoverview Error thrown when attempting to checkout a commit that hasn't been fetched
+ * 
+ * This error occurs when trying to checkout a branch or ref that references
+ * a commit that doesn't exist in the local repository yet. Usually resolved
+ * by running git fetch.
+ * 
+ * @module errors/commit-not-fetched
+ * @version 1.0.0
+ * @author EOL Git Implementation
+ * @since 1.0.0
+ */
 
 //// util
 

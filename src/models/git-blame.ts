@@ -1,4 +1,14 @@
 /**
+ * @fileoverview git-blame model definition
+ *
+ * Defines the git-blame class and related types for representing
+ * Git objects and data structures in the implementation.
+ *
+ * @module models/git-blame.ts
+ * @version 1.0.0
+ * @author EOL Git Implementation
+ * @since 1.0.0
+ *//**
  * Git blame models and types
  */
 

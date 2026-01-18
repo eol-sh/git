@@ -1,4 +1,14 @@
-
+/**
+ * @fileoverview extract-auth-from-url utility functions
+ *
+ * Utility functions for extract-auth-from-url operations used throughout
+ * the Git implementation for common tasks and transformations.
+ *
+ * @module utils/extract-auth-from-url.ts
+ * @version 1.0.0
+ * @author EOL Git Implementation
+ * @since 1.0.0
+ */
 
 
 //// util

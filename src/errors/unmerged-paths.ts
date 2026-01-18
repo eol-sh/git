@@ -1,6 +1,21 @@
 
 
 
+/**
+ * @fileoverview Unmerged paths error implementation
+ * 
+ * This error is thrown when attempting to modify the Git index while
+ * there are unmerged files present. This typically occurs after a
+ * merge conflict when files need to be resolved before any further
+ * index modifications can be made.
+ * 
+ * @module errors/unmerged-paths
+ * @version 1.0.0
+ * @author EOL Git Implementation
+ * @since 1.0.0
+ */
+
+
 //// util
 
 import { BaseError } from "./base.ts";

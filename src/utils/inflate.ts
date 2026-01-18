@@ -1,4 +1,14 @@
-/* global DecompressionStream */
+/**
+ * @fileoverview inflate utility functions
+ *
+ * Utility functions for inflate operations used throughout
+ * the Git implementation for common tasks and transformations.
+ *
+ * @module utils/inflate.ts
+ * @version 1.0.0
+ * @author EOL Git Implementation
+ * @since 1.0.0
+ *//* global DecompressionStream */
 
 
 

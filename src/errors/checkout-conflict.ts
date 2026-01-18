@@ -1,5 +1,14 @@
-
-
+/**
+ * @fileoverview Error thrown when checkout would overwrite local changes
+ * 
+ * This error occurs when attempting to checkout a branch or commit that would
+ * overwrite uncommitted local changes in the working directory.
+ * 
+ * @module errors/checkout-conflict
+ * @version 1.0.0
+ * @author EOL Git Implementation
+ * @since 1.0.0
+ */
 
 //// util
 

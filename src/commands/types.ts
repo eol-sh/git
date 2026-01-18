@@ -1,5 +1,18 @@
 
 
+/**
+ * @fileoverview Git types command implementation
+ *
+ * Internal implementation of the types Git operation. This module contains
+ * the core logic and should not be used directly - use the API layer instead.
+ *
+ * @module commands/types.ts
+ * @version 1.0.0
+ * @author EOL Git Implementation
+ * @since 1.0.0
+ * @internal
+ */
+
 
 //// export
 

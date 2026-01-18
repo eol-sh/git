@@ -1,6 +1,21 @@
 
 
 
+/**
+ * @fileoverview Command for listing configured Git remote repositories
+ * 
+ * This module provides functionality to list all configured remote repositories
+ * in a Git repository. The command reads the repository configuration to extract
+ * remote names and their associated URLs, providing a complete overview of all
+ * configured remotes. This information is essential for understanding repository
+ * connectivity and managing push/fetch operations with multiple remote repositories.
+ * 
+ * @module commands/list-remotes
+ * @version 1.0.0
+ * @author EOL Git Implementation
+ * @since 1.0.0
+ */
+
 //// util
 
 import { adaptFsInterface } from "../utils/fs-adapter.ts";

@@ -1,4 +1,14 @@
-
+/**
+ * @fileoverview git-side-band model definition
+ *
+ * Defines the git-side-band class and related types for representing
+ * Git objects and data structures in the implementation.
+ *
+ * @module models/git-side-band.ts
+ * @version 1.0.0
+ * @author EOL Git Implementation
+ * @since 1.0.0
+ */
 
 
 //// util

@@ -1,4 +1,14 @@
-
+/**
+ * @fileoverview format-info-refs utility functions
+ *
+ * Utility functions for format-info-refs operations used throughout
+ * the Git implementation for common tasks and transformations.
+ *
+ * @module utils/format-info-refs.ts
+ * @version 1.0.0
+ * @author EOL Git Implementation
+ * @since 1.0.0
+ */
 
 
 //// util

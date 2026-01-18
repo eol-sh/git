@@ -1,4 +1,14 @@
-
+/**
+ * @fileoverview git-config manager
+ *
+ * Manages git-config resources including creation, access, and lifecycle.
+ * Provides centralized control and caching for git-config operations.
+ *
+ * @module managers/git-config.ts
+ * @version 1.0.0
+ * @author EOL Git Implementation
+ * @since 1.0.0
+ */
 
 
 //// util

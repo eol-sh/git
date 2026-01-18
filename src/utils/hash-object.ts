@@ -1,4 +1,14 @@
-
+/**
+ * @fileoverview hash-object utility functions
+ *
+ * Utility functions for hash-object operations used throughout
+ * the Git implementation for common tasks and transformations.
+ *
+ * @module utils/hash-object.ts
+ * @version 1.0.0
+ * @author EOL Git Implementation
+ * @since 1.0.0
+ */
 
 
 //// util

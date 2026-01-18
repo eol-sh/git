@@ -1,5 +1,15 @@
-
-
+/**
+ * @fileoverview Error thrown when index merge fails due to uncommitted changes
+ * 
+ * This error occurs when attempting operations that require a clean index,
+ * but there are unstaged changes that would be lost. Users need to either
+ * commit, stash, or reset their changes.
+ * 
+ * @module errors/index-reset
+ * @version 1.0.0
+ * @author EOL Git Implementation
+ * @since 1.0.0
+ */
 
 //// util
 

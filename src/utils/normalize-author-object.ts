@@ -1,4 +1,14 @@
-
+/**
+ * @fileoverview normalize-author-object utility functions
+ *
+ * Utility functions for normalize-author-object operations used throughout
+ * the Git implementation for common tasks and transformations.
+ *
+ * @module utils/normalize-author-object.ts
+ * @version 1.0.0
+ * @author EOL Git Implementation
+ * @since 1.0.0
+ */
 
 
 //// util

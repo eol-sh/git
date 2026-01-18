@@ -1,6 +1,21 @@
 
 
 
+/**
+ * @fileoverview Push rejected error implementation
+ * 
+ * This error is thrown when a push operation is rejected by the remote
+ * repository. Common reasons include non-fast-forward pushes that would
+ * overwrite history, or attempting to push tags that already exist on
+ * the remote.
+ * 
+ * @module errors/push-rejected
+ * @version 1.0.0
+ * @author EOL Git Implementation
+ * @since 1.0.0
+ */
+
+
 //// util
 
 import { BaseError } from "./base.ts";

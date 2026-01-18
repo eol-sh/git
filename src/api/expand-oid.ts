@@ -1,4 +1,14 @@
-
+/**
+ * @fileoverview Git expand-oid API - High-level user interface
+ *
+ * This module provides the public API for expand-oid operations in the Git implementation.
+ * It handles parameter validation, file system adaptation, and error handling.
+ *
+ * @module api/expand-oid.ts
+ * @version 1.0.0
+ * @author EOL Git Implementation
+ * @since 1.0.0
+ */
 
 
 //// util

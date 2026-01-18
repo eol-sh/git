@@ -1,5 +1,14 @@
-
-
+/**
+ * @fileoverview Error thrown for unexpected internal failures
+ * 
+ * This error indicates a bug in the Git implementation itself. When thrown,
+ * it provides instructions for users to file bug reports with the error details.
+ * 
+ * @module errors/internal
+ * @version 1.0.0
+ * @author EOL Git Implementation
+ * @since 1.0.0
+ */
 
 //// util
 

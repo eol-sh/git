@@ -1,4 +1,13 @@
-
+/**
+ * @fileoverview index implementation
+ *
+ * Implementation of index functionality for the Git system.
+ *
+ * @module http/node/index.ts
+ * @version 1.0.0
+ * @author EOL Git Implementation
+ * @since 1.0.0
+ */
 
 
 //// util

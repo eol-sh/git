@@ -1,4 +1,14 @@
 /**
+ * @fileoverview deno-native utility functions
+ *
+ * Utility functions for deno-native operations used throughout
+ * the Git implementation for common tasks and transformations.
+ *
+ * @module utils/deno-native.ts
+ * @version 1.0.0
+ * @author EOL Git Implementation
+ * @since 1.0.0
+ *//**
  * Deno-native implementations replacing npm packages
  * This file provides native Deno alternatives to Node.js npm packages
  */

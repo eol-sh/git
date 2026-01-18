@@ -1,4 +1,14 @@
-
+/**
+ * @fileoverview from-stream utility functions
+ *
+ * Utility functions for from-stream operations used throughout
+ * the Git implementation for common tasks and transformations.
+ *
+ * @module utils/from-stream.ts
+ * @version 1.0.0
+ * @author EOL Git Implementation
+ * @since 1.0.0
+ */
 
 
 //// export

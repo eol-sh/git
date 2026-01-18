@@ -1,4 +1,14 @@
-
+/**
+ * @fileoverview Git write-tree API - High-level user interface
+ *
+ * This module provides the public API for write-tree operations in the Git implementation.
+ * It handles parameter validation, file system adaptation, and error handling.
+ *
+ * @module api/write-tree.ts
+ * @version 1.0.0
+ * @author EOL Git Implementation
+ * @since 1.0.0
+ */
 
 
 //// util

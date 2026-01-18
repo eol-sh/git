@@ -1,4 +1,14 @@
-
+/**
+ * @fileoverview Git find-merge-base API - High-level user interface
+ *
+ * This module provides the public API for find-merge-base operations in the Git implementation.
+ * It handles parameter validation, file system adaptation, and error handling.
+ *
+ * @module api/find-merge-base.ts
+ * @version 1.0.0
+ * @author EOL Git Implementation
+ * @since 1.0.0
+ */
 
 
 //// util

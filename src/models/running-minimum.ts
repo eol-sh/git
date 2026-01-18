@@ -1,4 +1,14 @@
-
+/**
+ * @fileoverview running-minimum model definition
+ *
+ * Defines the running-minimum class and related types for representing
+ * Git objects and data structures in the implementation.
+ *
+ * @module models/running-minimum.ts
+ * @version 1.0.0
+ * @author EOL Git Implementation
+ * @since 1.0.0
+ */
 
 
 //// export

@@ -1,4 +1,14 @@
-
+/**
+ * @fileoverview abbreviate-ref utility functions
+ *
+ * Utility functions for abbreviate-ref operations used throughout
+ * the Git implementation for common tasks and transformations.
+ *
+ * @module utils/abbreviate-ref.ts
+ * @version 1.0.0
+ * @author EOL Git Implementation
+ * @since 1.0.0
+ */
 
 
 //// util

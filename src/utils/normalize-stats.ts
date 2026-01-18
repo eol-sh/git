@@ -1,4 +1,14 @@
-
+/**
+ * @fileoverview normalize-stats utility functions
+ *
+ * Utility functions for normalize-stats operations used throughout
+ * the Git implementation for common tasks and transformations.
+ *
+ * @module utils/normalize-stats.ts
+ * @version 1.0.0
+ * @author EOL Git Implementation
+ * @since 1.0.0
+ */
 
 
 //// util

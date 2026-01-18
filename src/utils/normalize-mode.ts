@@ -1,4 +1,14 @@
-
+/**
+ * @fileoverview normalize-mode utility functions
+ *
+ * Utility functions for normalize-mode operations used throughout
+ * the Git implementation for common tasks and transformations.
+ *
+ * @module utils/normalize-mode.ts
+ * @version 1.0.0
+ * @author EOL Git Implementation
+ * @since 1.0.0
+ */
 
 
 //// export

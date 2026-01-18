@@ -1,6 +1,22 @@
 
 
 
+/**
+ * @fileoverview Command for Git upload-pack server functionality
+ * 
+ * This module implements the server-side upload-pack protocol used by Git clients
+ * during fetch and clone operations. The command handles advertising available
+ * references, processing client requests for specific objects, and generating
+ * packfiles containing the requested repository data. It supports the Git wire
+ * protocol for efficient data transfer and enables repository hosting capabilities
+ * within the Git implementation.
+ * 
+ * @module commands/upload-pack
+ * @version 1.0.0
+ * @author EOL Git Implementation
+ * @since 1.0.0
+ */
+
 //// util
 
 import { adaptFsInterface } from "../utils/fs-adapter.ts";

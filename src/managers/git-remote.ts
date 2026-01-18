@@ -1,4 +1,14 @@
-
+/**
+ * @fileoverview git-remote manager
+ *
+ * Manages git-remote resources including creation, access, and lifecycle.
+ * Provides centralized control and caching for git-remote operations.
+ *
+ * @module managers/git-remote.ts
+ * @version 1.0.0
+ * @author EOL Git Implementation
+ * @since 1.0.0
+ */
 
 
 //// util

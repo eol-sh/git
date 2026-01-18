@@ -1,4 +1,14 @@
 /**
+ * @fileoverview Git blame API - High-level user interface
+ *
+ * This module provides the public API for blame operations in the Git implementation.
+ * It handles parameter validation, file system adaptation, and error handling.
+ *
+ * @module api/blame.ts
+ * @version 1.0.0
+ * @author EOL Git Implementation
+ * @since 1.0.0
+ *//**
  * Git blame API - Show what revision and author last modified each line of a file
  */
 

@@ -1,4 +1,14 @@
-
+/**
+ * @fileoverview resolve-file-id-in-tree utility functions
+ *
+ * Utility functions for resolve-file-id-in-tree operations used throughout
+ * the Git implementation for common tasks and transformations.
+ *
+ * @module utils/resolve-file-id-in-tree.ts
+ * @version 1.0.0
+ * @author EOL Git Implementation
+ * @since 1.0.0
+ */
 
 
 //// util

@@ -1,4 +1,14 @@
 /**
+ * @fileoverview git-pkt-line model definition
+ *
+ * Defines the git-pkt-line class and related types for representing
+ * Git objects and data structures in the implementation.
+ *
+ * @module models/git-pkt-line.ts
+ * @version 1.0.0
+ * @author EOL Git Implementation
+ * @since 1.0.0
+ *//**
 pkt-line Format
 ---------------
 

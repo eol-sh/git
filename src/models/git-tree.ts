@@ -1,4 +1,14 @@
-
+/**
+ * @fileoverview git-tree model definition
+ *
+ * Defines the git-tree class and related types for representing
+ * Git objects and data structures in the implementation.
+ *
+ * @module models/git-tree.ts
+ * @version 1.0.0
+ * @author EOL Git Implementation
+ * @since 1.0.0
+ */
 
 
 //// util

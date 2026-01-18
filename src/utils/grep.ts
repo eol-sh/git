@@ -1,4 +1,14 @@
 /**
+ * @fileoverview grep utility functions
+ *
+ * Utility functions for grep operations used throughout
+ * the Git implementation for common tasks and transformations.
+ *
+ * @module utils/grep.ts
+ * @version 1.0.0
+ * @author EOL Git Implementation
+ * @since 1.0.0
+ *//**
  * Git grep utilities
  *
  * Implementation of pattern searching in git repository content

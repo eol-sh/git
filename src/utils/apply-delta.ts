@@ -1,4 +1,14 @@
-
+/**
+ * @fileoverview apply-delta utility functions
+ *
+ * Utility functions for apply-delta operations used throughout
+ * the Git implementation for common tasks and transformations.
+ *
+ * @module utils/apply-delta.ts
+ * @version 1.0.0
+ * @author EOL Git Implementation
+ * @since 1.0.0
+ */
 
 
 //// util

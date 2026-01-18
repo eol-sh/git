@@ -1,4 +1,14 @@
-
+/**
+ * @fileoverview parse-author utility functions
+ *
+ * Utility functions for parse-author operations used throughout
+ * the Git implementation for common tasks and transformations.
+ *
+ * @module utils/parse-author.ts
+ * @version 1.0.0
+ * @author EOL Git Implementation
+ * @since 1.0.0
+ */
 
 
 //// util

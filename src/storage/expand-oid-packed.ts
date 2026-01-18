@@ -1,4 +1,15 @@
-
+/**
+ * @fileoverview expand-oid-packed storage operations
+ *
+ * Low-level storage operations for expand-oid-packed including reading,
+ * writing, and managing Git objects on the file system.
+ *
+ * @module storage/expand-oid-packed.ts
+ * @version 1.0.0
+ * @author EOL Git Implementation
+ * @since 1.0.0
+ * @internal
+ */
 
 
 //// util

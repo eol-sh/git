@@ -1,4 +1,14 @@
-
+/**
+ * @fileoverview Git status API - High-level user interface
+ *
+ * This module provides the public API for status operations in the Git implementation.
+ * It handles parameter validation, file system adaptation, and error handling.
+ *
+ * @module api/status.ts
+ * @version 1.0.0
+ * @author EOL Git Implementation
+ * @since 1.0.0
+ */
 
 
 //// util
@@ -35,17 +45,36 @@ type StatusResult =
   | "modified"
   | "unmodified";
 
+/**
+ * Configuration options for checking file status
+ * 
+ * @interface StatusOptions
+ */
 interface StatusOptions {
+  /** Cache for performance optimization */
   cache?: Cache;
+  /** Working directory path */
   dir: string;
+  /** File path to check status for */
   filepath: string;
+  /** File system implementation (required) */
   fs: FsClient;
+  /** Git directory path (defaults to `${dir}/.git`) */
   gitdir?: string;
 }
 
+/**
+ * Represents an entry in the Git index
+ * 
+ * @interface IndexEntry
+ * @internal
+ */
 interface IndexEntry {
+  /** File path relative to repository root */
   path: string;
+  /** SHA-1 hash of the file content */
   oid: string;
+  /** File statistics for cache optimization */
   stats?: any;
 }
 
@@ -54,7 +83,76 @@ interface IndexEntry {
 //// export
 
 /**
- * Tell whether a file has been changed
+ * Check the status of a file in the Git repository
+ * 
+ * Determines whether a file has been modified, added, deleted, or is untracked
+ * by comparing the working directory, Git index (staging area), and HEAD commit.
+ * This is the core function behind `git status` for individual files.
+ *
+ * @param {Object} options - Status check configuration
+ * @param {Cache} [options.cache] - Cache for performance optimization
+ * @param {string} options.dir - Working directory path
+ * @param {string} options.filepath - File path to check status for
+ * @param {FsClient} options.fs - File system implementation (required)
+ * @param {string} [options.gitdir] - Git directory path (defaults to `${dir}/.git`)
+ * 
+ * @returns {Promise<StatusResult>} File status indicating changes between working dir, index, and HEAD
+ * 
+ * **Return values:**
+ * - `"unmodified"` - File unchanged from HEAD
+ * - `"modified"` - File changed in working directory and staged
+ * - `"*modified"` - File changed in working directory but not staged  
+ * - `"added"` - New file staged for commit
+ * - `"*added"` - New file in working directory but not staged
+ * - `"deleted"` - File removed and staged for removal
+ * - `"*deleted"` - File removed from working directory but not staged
+ * - `"absent"` - File doesn't exist anywhere
+ * - `"ignored"` - File is ignored by .gitignore rules
+ * 
+ * @throws {Error} When required parameters are missing or invalid
+ * @throws {Error} When file system operations fail
+ * @throws {NotFoundError} When Git repository is not found
+ * @throws {ObjectTypeError} When Git objects have unexpected types
+ * 
+ * @example
+ * ```typescript
+ * import { status } from '@eol/git'
+ * import fs from 'fs'
+ * 
+ * // Check status of a specific file
+ * const fileStatus = await status({
+ *   fs,
+ *   dir: '/path/to/repo',
+ *   filepath: 'src/index.ts'
+ * })
+ * 
+ * console.log(`File status: ${fileStatus}`)
+ * // => "modified", "unmodified", "added", etc.
+ * 
+ * // Check multiple files
+ * const files = ['README.md', 'package.json', 'src/app.ts']
+ * for (const filepath of files) {
+ *   const status = await status({
+ *     fs,
+ *     dir: '/path/to/repo', 
+ *     filepath
+ *   })
+ *   console.log(`${filepath}: ${status}`)
+ * }
+ * 
+ * // Handle ignored files
+ * const status = await status({
+ *   fs,
+ *   dir: '/path/to/repo',
+ *   filepath: 'node_modules/some-package/index.js'
+ * })
+ * if (status === 'ignored') {
+ *   console.log('File is ignored by .gitignore')
+ * }
+ * ```
+ * 
+ * @see {@link https://git-scm.com/docs/git-status} Git status documentation
+ * @since 1.0.0
  */
 export async function status({
   cache = new Map(),
@@ -202,6 +300,14 @@ export async function status({
 
 //// helper
 
+/**
+ * Get the tree entries from the current HEAD commit
+ * 
+ * @param {Object} options - Configuration for retrieving HEAD tree
+ * @returns {Promise<TreeEntry[]>} Array of tree entries from HEAD commit, empty array if no commits
+ * 
+ * @internal
+ */
 async function getHeadTree({
   cache,
   gitdir,

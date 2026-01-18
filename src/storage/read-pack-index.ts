@@ -1,4 +1,15 @@
-
+/**
+ * @fileoverview read-pack-index storage operations
+ *
+ * Low-level storage operations for read-pack-index including reading,
+ * writing, and managing Git objects on the file system.
+ *
+ * @module storage/read-pack-index.ts
+ * @version 1.0.0
+ * @author EOL Git Implementation
+ * @since 1.0.0
+ * @internal
+ */
 
 
 //// util

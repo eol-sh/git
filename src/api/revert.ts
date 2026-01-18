@@ -1,4 +1,14 @@
 /**
+ * @fileoverview Git revert API - High-level user interface
+ *
+ * This module provides the public API for revert operations in the Git implementation.
+ * It handles parameter validation, file system adaptation, and error handling.
+ *
+ * @module api/revert.ts
+ * @version 1.0.0
+ * @author EOL Git Implementation
+ * @since 1.0.0
+ *//**
  * Git revert API - Revert some existing commits
  */
 

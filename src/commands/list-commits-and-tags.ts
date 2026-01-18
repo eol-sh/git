@@ -1,6 +1,22 @@
 
 
 
+/**
+ * @fileoverview Command for listing commits and tags between specified ranges
+ * 
+ * This module provides functionality to list all commits and tags within a specified
+ * range, walking the commit graph from starting points until reaching finishing points.
+ * The command handles both commits and annotated tags, recursively resolving tag
+ * references to their underlying commit objects. It respects shallow clone boundaries
+ * and provides comprehensive traversal for operations like determining what objects
+ * need to be transferred during push/fetch operations.
+ * 
+ * @module commands/list-commits-and-tags
+ * @version 1.0.0
+ * @author EOL Git Implementation
+ * @since 1.0.0
+ */
+
 //// util
 
 import { adaptFsInterface } from "../utils/fs-adapter.ts";

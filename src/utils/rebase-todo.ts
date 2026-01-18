@@ -1,4 +1,14 @@
 /**
+ * @fileoverview rebase-todo utility functions
+ *
+ * Utility functions for rebase-todo operations used throughout
+ * the Git implementation for common tasks and transformations.
+ *
+ * @module utils/rebase-todo.ts
+ * @version 1.0.0
+ * @author EOL Git Implementation
+ * @since 1.0.0
+ *//**
  * Rebase todo list parser and formatter
  */
 

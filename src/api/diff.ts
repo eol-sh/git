@@ -1,4 +1,14 @@
 /**
+ * @fileoverview Git diff API - High-level user interface
+ *
+ * This module provides the public API for diff operations in the Git implementation.
+ * It handles parameter validation, file system adaptation, and error handling.
+ *
+ * @module api/diff.ts
+ * @version 1.0.0
+ * @author EOL Git Implementation
+ * @since 1.0.0
+ *//**
  * Git diff API - Show changes between commits, commit and working tree, etc.
  */
 

@@ -1,4 +1,15 @@
-
+/**
+ * @fileoverview write-receive-pack-request wire protocol implementation
+ *
+ * Handles write-receive-pack-request wire protocol operations for Git network
+ * communication including parsing and serialization.
+ *
+ * @module wire/write-receive-pack-request.ts
+ * @version 1.0.0
+ * @author EOL Git Implementation
+ * @since 1.0.0
+ * @internal
+ */
 
 
 //// util

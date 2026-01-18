@@ -1,4 +1,14 @@
 /**
+ * @fileoverview Git bisect API - High-level user interface
+ *
+ * This module provides the public API for bisect operations in the Git implementation.
+ * It handles parameter validation, file system adaptation, and error handling.
+ *
+ * @module api/bisect.ts
+ * @version 1.0.0
+ * @author EOL Git Implementation
+ * @since 1.0.0
+ *//**
  * Git bisect API - Binary search for bug introduction
  */
 

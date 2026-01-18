@@ -1,4 +1,14 @@
-/* global CompressionStream */
+/**
+ * @fileoverview deflate utility functions
+ *
+ * Utility functions for deflate operations used throughout
+ * the Git implementation for common tasks and transformations.
+ *
+ * @module utils/deflate.ts
+ * @version 1.0.0
+ * @author EOL Git Implementation
+ * @since 1.0.0
+ *//* global CompressionStream */
 
 
 

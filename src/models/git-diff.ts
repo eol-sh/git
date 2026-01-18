@@ -1,4 +1,14 @@
 /**
+ * @fileoverview git-diff model definition
+ *
+ * Defines the git-diff class and related types for representing
+ * Git objects and data structures in the implementation.
+ *
+ * @module models/git-diff.ts
+ * @version 1.0.0
+ * @author EOL Git Implementation
+ * @since 1.0.0
+ *//**
  * Git diff models and types
  */
 

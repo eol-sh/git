@@ -1,6 +1,22 @@
 
 
 
+/**
+ * @fileoverview Command for listing files in Git repository trees and index
+ * 
+ * This module provides functionality to list all files either from a specific
+ * Git tree object (commit/tag reference) or from the current index. When a reference
+ * is provided, it traverses the tree structure to collect all blob entries. When
+ * no reference is given, it returns files from the staging area. The command uses
+ * the walk API for efficient tree traversal and supports both historical file
+ * listings and current working directory state inspection.
+ * 
+ * @module commands/list-files
+ * @version 1.0.0
+ * @author EOL Git Implementation
+ * @since 1.0.0
+ */
+
 //// util
 
 import { _readTree } from "../commands/read-tree.ts";

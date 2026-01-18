@@ -1,4 +1,17 @@
 
+/**
+ * @fileoverview Merge conflict error implementation
+ * 
+ * This error is thrown when Git cannot automatically merge changes and manual
+ * intervention is required. It occurs during merge operations when the same
+ * lines or sections of files have been modified in conflicting ways between
+ * branches or commits.
+ * 
+ * @module errors/merge-conflict
+ * @version 1.0.0
+ * @author EOL Git Implementation
+ * @since 1.0.0
+ */
 
 
 //// util

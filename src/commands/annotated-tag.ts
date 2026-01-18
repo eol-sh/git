@@ -1,5 +1,19 @@
 
 
+/**
+ * @fileoverview Command for creating annotated Git tags with optional signing support
+ * 
+ * This module provides functionality to create Git annotated tags, which are Git objects
+ * that store metadata about a tag including the tagger information, creation time, and 
+ * an optional message. Unlike lightweight tags, annotated tags are stored as full objects
+ * in Git's object database and can be cryptographically signed. The command handles tag
+ * creation, validation, signing with optional GPG signatures, and proper reference management.
+ * 
+ * @module commands/annotated-tag
+ * @version 1.0.0
+ * @author EOL Git Implementation
+ * @since 1.0.0
+ */
 
 //// util
 

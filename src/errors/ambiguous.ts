@@ -1,5 +1,14 @@
-
-
+/**
+ * @fileoverview Error thrown when a Git reference or object ID is ambiguous
+ * 
+ * This error occurs when a shortened OID or ref matches multiple objects
+ * in the repository. Users need to provide a longer abbreviation to disambiguate.
+ * 
+ * @module errors/ambiguous
+ * @version 1.0.0
+ * @author EOL Git Implementation
+ * @since 1.0.0
+ */
 
 //// util
 

@@ -1,4 +1,14 @@
 /**
+ * @fileoverview validate-packfile-stream utility functions
+ *
+ * Utility functions for validate-packfile-stream operations used throughout
+ * the Git implementation for common tasks and transformations.
+ *
+ * @module utils/validate-packfile-stream.ts
+ * @version 1.0.0
+ * @author EOL Git Implementation
+ * @since 1.0.0
+ *//**
  * Streaming packfile validation utilities
  * Validates packfile integrity without loading entire file into memory
  */

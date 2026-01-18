@@ -1,5 +1,14 @@
-
-
+/**
+ * @fileoverview Error thrown for invalid Git object identifiers (OIDs)
+ * 
+ * This error validates that object IDs are properly formatted 40-character
+ * hexadecimal SHA-1 hashes as required by the Git protocol.
+ * 
+ * @module errors/invalid-oid
+ * @version 1.0.0
+ * @author EOL Git Implementation
+ * @since 1.0.0
+ */
 
 //// util
 

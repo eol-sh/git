@@ -1,4 +1,14 @@
-
+/**
+ * @fileoverview gitignore-native utility functions
+ *
+ * Utility functions for gitignore-native operations used throughout
+ * the Git implementation for common tasks and transformations.
+ *
+ * @module utils/gitignore-native.ts
+ * @version 1.0.0
+ * @author EOL Git Implementation
+ * @since 1.0.0
+ */
 
 
 //// export

@@ -1,4 +1,14 @@
 /**
+ * @fileoverview Git rebase API - High-level user interface
+ *
+ * This module provides the public API for rebase operations in the Git implementation.
+ * It handles parameter validation, file system adaptation, and error handling.
+ *
+ * @module api/rebase.ts
+ * @version 1.0.0
+ * @author EOL Git Implementation
+ * @since 1.0.0
+ *//**
  * Git rebase API - Reapply commits on top of another base tip
  */
 

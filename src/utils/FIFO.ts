@@ -1,4 +1,14 @@
-
+/**
+ * @fileoverview fifo utility functions
+ *
+ * Utility functions for fifo operations used throughout
+ * the Git implementation for common tasks and transformations.
+ *
+ * @module utils/fifo.ts
+ * @version 1.0.0
+ * @author EOL Git Implementation
+ * @since 1.0.0
+ */
 
 
 //// export

@@ -1,4 +1,14 @@
-
+/**
+ * @fileoverview git-packed-refs model definition
+ *
+ * Defines the git-packed-refs class and related types for representing
+ * Git objects and data structures in the implementation.
+ *
+ * @module models/git-packed-refs.ts
+ * @version 1.0.0
+ * @author EOL Git Implementation
+ * @since 1.0.0
+ */
 
 
 //// util

@@ -1,4 +1,14 @@
-
+/**
+ * @fileoverview git-stash manager
+ *
+ * Manages git-stash resources including creation, access, and lifecycle.
+ * Provides centralized control and caching for git-stash operations.
+ *
+ * @module managers/git-stash.ts
+ * @version 1.0.0
+ * @author EOL Git Implementation
+ * @since 1.0.0
+ */
 
 
 //// util

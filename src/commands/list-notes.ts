@@ -1,6 +1,22 @@
 
 
 
+/**
+ * @fileoverview Command for listing Git notes attached to objects
+ * 
+ * This module provides functionality to list all Git notes from a specified
+ * notes reference. Git notes are metadata attachments to Git objects that don't
+ * modify the objects themselves. The command reads the notes tree structure and
+ * returns a mapping of target objects to their associated note objects, enabling
+ * inspection of all notes in a notes namespace without modifying the underlying
+ * repository structure.
+ * 
+ * @module commands/list-notes
+ * @version 1.0.0
+ * @author EOL Git Implementation
+ * @since 1.0.0
+ */
+
 //// util
 
 import { _readTree } from "./read-tree.ts";

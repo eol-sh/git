@@ -1,4 +1,14 @@
-
+/**
+ * @fileoverview translate-ssh-to-http utility functions
+ *
+ * Utility functions for translate-ssh-to-http operations used throughout
+ * the Git implementation for common tasks and transformations.
+ *
+ * @module utils/translate-ssh-to-http.ts
+ * @version 1.0.0
+ * @author EOL Git Implementation
+ * @since 1.0.0
+ */
 
 
 //// export

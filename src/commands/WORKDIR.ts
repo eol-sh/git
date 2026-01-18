@@ -1,6 +1,22 @@
 
 
 
+/**
+ * @fileoverview Command factory for creating working directory walkers
+ * 
+ * This module provides a factory function for creating working directory walker
+ * objects that can traverse the actual filesystem. The WORKDIR walker enables
+ * iteration over files and directories in the current working directory, supporting
+ * operations that need to compare or synchronize repository content with the
+ * actual filesystem state. It integrates with the walker system to provide
+ * consistent filesystem traversal capabilities.
+ * 
+ * @module commands/workdir
+ * @version 1.0.0
+ * @author EOL Git Implementation
+ * @since 1.0.0
+ */
+
 //// util
 
 import { GitWalkerFs } from "../models/git-walker-fs.ts";

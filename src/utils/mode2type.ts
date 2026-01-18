@@ -1,4 +1,14 @@
-
+/**
+ * @fileoverview mode2type utility functions
+ *
+ * Utility functions for mode2type operations used throughout
+ * the Git implementation for common tasks and transformations.
+ *
+ * @module utils/mode2type.ts
+ * @version 1.0.0
+ * @author EOL Git Implementation
+ * @since 1.0.0
+ */
 
 
 //// util

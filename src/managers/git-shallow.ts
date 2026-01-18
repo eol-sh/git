@@ -1,4 +1,14 @@
-
+/**
+ * @fileoverview git-shallow manager
+ *
+ * Manages git-shallow resources including creation, access, and lifecycle.
+ * Provides centralized control and caching for git-shallow operations.
+ *
+ * @module managers/git-shallow.ts
+ * @version 1.0.0
+ * @author EOL Git Implementation
+ * @since 1.0.0
+ */
 
 
 //// util

@@ -1,4 +1,15 @@
 /**
+ * @fileoverview Git cherry-pick command implementation
+ *
+ * Internal implementation of the cherry-pick Git operation. This module contains
+ * the core logic and should not be used directly - use the API layer instead.
+ *
+ * @module commands/cherry-pick.ts
+ * @version 1.0.0
+ * @author EOL Git Implementation
+ * @since 1.0.0
+ * @internal
+ *//**
  * Core cherry-pick command implementation
  * Applies changes from specific commits onto the current branch
  */

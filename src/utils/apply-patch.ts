@@ -1,4 +1,14 @@
 /**
+ * @fileoverview apply-patch utility functions
+ *
+ * Utility functions for apply-patch operations used throughout
+ * the Git implementation for common tasks and transformations.
+ *
+ * @module utils/apply-patch.ts
+ * @version 1.0.0
+ * @author EOL Git Implementation
+ * @since 1.0.0
+ *//**
  * Patch application utilities for cherry-pick and revert
  */
 

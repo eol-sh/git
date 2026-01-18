@@ -1,4 +1,13 @@
 /**
+ * @fileoverview typedefs-http implementation
+ *
+ * Implementation of typedefs-http functionality for the Git system.
+ *
+ * @module typedefs-http.ts
+ * @version 1.0.0
+ * @author EOL Git Implementation
+ * @since 1.0.0
+ *//**
  * @typedef {Object} GitProgressEvent
  * @property {string} phase
  * @property {number} loaded

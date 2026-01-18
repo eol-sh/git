@@ -1,6 +1,20 @@
 
 
 
+/**
+ * @fileoverview Missing parameter error implementation
+ * 
+ * This error is thrown when a required function parameter is missing or
+ * undefined. It helps identify when API functions are called without
+ * providing mandatory arguments needed for proper execution.
+ * 
+ * @module errors/missing-parameter
+ * @version 1.0.0
+ * @author EOL Git Implementation
+ * @since 1.0.0
+ */
+
+
 //// util
 
 import { BaseError } from "./base.ts";

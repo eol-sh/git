@@ -1,4 +1,15 @@
-
+/**
+ * @fileoverview Git rename-branch command implementation
+ *
+ * Internal implementation of the rename-branch Git operation. This module contains
+ * the core logic and should not be used directly - use the API layer instead.
+ *
+ * @module commands/rename-branch.ts
+ * @version 1.0.0
+ * @author EOL Git Implementation
+ * @since 1.0.0
+ * @internal
+ */
 
 
 //// import

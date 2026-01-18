@@ -1,4 +1,14 @@
-
+/**
+ * @fileoverview union-of-iterators utility functions
+ *
+ * Utility functions for union-of-iterators operations used throughout
+ * the Git implementation for common tasks and transformations.
+ *
+ * @module utils/union-of-iterators.ts
+ * @version 1.0.0
+ * @author EOL Git Implementation
+ * @since 1.0.0
+ */
 
 
 //// util

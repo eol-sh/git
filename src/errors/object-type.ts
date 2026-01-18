@@ -1,6 +1,21 @@
 
 
 
+/**
+ * @fileoverview Object type error implementation
+ * 
+ * This error is thrown when a Git object is expected to be of one type
+ * but is actually of a different type. For example, when code expects
+ * a blob object but receives a tree object. This helps catch type
+ * mismatches in Git object handling.
+ * 
+ * @module errors/object-type
+ * @version 1.0.0
+ * @author EOL Git Implementation
+ * @since 1.0.0
+ */
+
+
 //// util
 
 import { BaseError } from "./base.ts";

@@ -1,4 +1,14 @@
 /**
+ * @fileoverview reflog utility functions
+ *
+ * Utility functions for reflog operations used throughout
+ * the Git implementation for common tasks and transformations.
+ *
+ * @module utils/reflog.ts
+ * @version 1.0.0
+ * @author EOL Git Implementation
+ * @since 1.0.0
+ *//**
  * Git reflog utilities
  *
  * Implementation of reference log tracking for HEAD and branch references

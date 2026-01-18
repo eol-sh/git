@@ -1,5 +1,14 @@
-
-
+/**
+ * @fileoverview Base error class for all Git operation errors
+ * 
+ * Provides a common base class with serialization support for all Git errors.
+ * All custom error types in the library extend from this base class.
+ * 
+ * @module errors/base
+ * @version 1.0.0
+ * @author EOL Git Implementation
+ * @since 1.0.0
+ */
 
 //// export
 

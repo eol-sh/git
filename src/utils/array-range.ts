@@ -1,4 +1,14 @@
-
+/**
+ * @fileoverview array-range utility functions
+ *
+ * Utility functions for array-range operations used throughout
+ * the Git implementation for common tasks and transformations.
+ *
+ * @module utils/array-range.ts
+ * @version 1.0.0
+ * @author EOL Git Implementation
+ * @since 1.0.0
+ */
 
 
 //// export

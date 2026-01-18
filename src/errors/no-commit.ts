@@ -1,6 +1,21 @@
 
 
 
+/**
+ * @fileoverview No commit error implementation
+ * 
+ * This error is thrown when a reference (branch, tag, etc.) does not point
+ * to any commit object. This commonly occurs when working with a repository
+ * that has no commits yet, or when referencing a branch that exists but
+ * has no commit history.
+ * 
+ * @module errors/no-commit
+ * @version 1.0.0
+ * @author EOL Git Implementation
+ * @since 1.0.0
+ */
+
+
 //// util
 
 import { BaseError } from "./base.ts";

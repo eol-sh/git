@@ -1,4 +1,14 @@
-
+/**
+ * @fileoverview Git find-root API - High-level user interface
+ *
+ * This module provides the public API for find-root operations in the Git implementation.
+ * It handles parameter validation, file system adaptation, and error handling.
+ *
+ * @module api/find-root.ts
+ * @version 1.0.0
+ * @author EOL Git Implementation
+ * @since 1.0.0
+ */
 
 
 //// util

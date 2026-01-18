@@ -1,4 +1,14 @@
 /**
+ * @fileoverview save-stream-to-file utility functions
+ *
+ * Utility functions for save-stream-to-file operations used throughout
+ * the Git implementation for common tasks and transformations.
+ *
+ * @module utils/save-stream-to-file.ts
+ * @version 1.0.0
+ * @author EOL Git Implementation
+ * @since 1.0.0
+ *//**
  * Save a ReadableStream directly to a file without loading into memory
  */
 

@@ -1,4 +1,14 @@
-
+/**
+ * @fileoverview Git add-remote API - High-level user interface
+ *
+ * This module provides the public API for add-remote operations in the Git implementation.
+ * It handles parameter validation, file system adaptation, and error handling.
+ *
+ * @module api/add-remote.ts
+ * @version 1.0.0
+ * @author EOL Git Implementation
+ * @since 1.0.0
+ */
 
 
 //// util

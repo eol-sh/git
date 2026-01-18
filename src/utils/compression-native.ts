@@ -1,4 +1,14 @@
-
+/**
+ * @fileoverview compression-native utility functions
+ *
+ * Utility functions for compression-native operations used throughout
+ * the Git implementation for common tasks and transformations.
+ *
+ * @module utils/compression-native.ts
+ * @version 1.0.0
+ * @author EOL Git Implementation
+ * @since 1.0.0
+ */
 
 
 //// export

@@ -1,4 +1,14 @@
-
+/**
+ * @fileoverview normalize-newlines utility functions
+ *
+ * Utility functions for normalize-newlines operations used throughout
+ * the Git implementation for common tasks and transformations.
+ *
+ * @module utils/normalize-newlines.ts
+ * @version 1.0.0
+ * @author EOL Git Implementation
+ * @since 1.0.0
+ */
 
 
 //// export

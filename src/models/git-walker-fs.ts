@@ -1,4 +1,14 @@
-
+/**
+ * @fileoverview git-walker-fs model definition
+ *
+ * Defines the git-walker-fs class and related types for representing
+ * Git objects and data structures in the implementation.
+ *
+ * @module models/git-walker-fs.ts
+ * @version 1.0.0
+ * @author EOL Git Implementation
+ * @since 1.0.0
+ */
 
 
 //// util

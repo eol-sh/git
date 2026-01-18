@@ -1,6 +1,21 @@
 
 
 
+/**
+ * @fileoverview Unsafe filepath error implementation
+ * 
+ * This error is thrown when a filepath contains potentially dangerous
+ * character sequences that could lead to security vulnerabilities
+ * such as directory traversal attacks or other malicious path
+ * manipulation attempts.
+ * 
+ * @module errors/unsafe-filepath
+ * @version 1.0.0
+ * @author EOL Git Implementation
+ * @since 1.0.0
+ */
+
+
 //// util
 
 import { BaseError } from "./base.ts";

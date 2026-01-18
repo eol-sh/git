@@ -1,5 +1,14 @@
 /**
- * Internal write ref command
+ * @fileoverview Command for writing Git references to the repository
+ * 
+ * Implements low-level Git reference writing functionality. Manages both
+ * regular and symbolic references, handles force updates, and ensures
+ * reference integrity within the Git repository structure.
+ * 
+ * @module commands/write-ref
+ * @version 1.0.0
+ * @author EOL Git Implementation
+ * @since 1.0.0
  */
 
 import { GitRefManager } from "../managers/git-ref.ts";

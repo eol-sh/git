@@ -1,4 +1,15 @@
 /**
+ * @fileoverview Git blame command implementation
+ *
+ * Internal implementation of the blame Git operation. This module contains
+ * the core logic and should not be used directly - use the API layer instead.
+ *
+ * @module commands/blame.ts
+ * @version 1.0.0
+ * @author EOL Git Implementation
+ * @since 1.0.0
+ * @internal
+ *//**
  * Core blame command implementation
  * Tracks line-by-line authorship information
  */

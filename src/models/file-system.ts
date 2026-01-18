@@ -1,4 +1,14 @@
-
+/**
+ * @fileoverview file-system model definition
+ *
+ * Defines the file-system class and related types for representing
+ * Git objects and data structures in the implementation.
+ *
+ * @module models/file-system.ts
+ * @version 1.0.0
+ * @author EOL Git Implementation
+ * @since 1.0.0
+ */
 
 
 //// import

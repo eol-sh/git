@@ -1,4 +1,14 @@
-
+/**
+ * @fileoverview git-walker-index model definition
+ *
+ * Defines the git-walker-index class and related types for representing
+ * Git objects and data structures in the implementation.
+ *
+ * @module models/git-walker-index.ts
+ * @version 1.0.0
+ * @author EOL Git Implementation
+ * @since 1.0.0
+ */
 
 
 //// util

@@ -1,4 +1,14 @@
 /**
+ * @fileoverview Git show API - High-level user interface
+ *
+ * This module provides the public API for show operations in the Git implementation.
+ * It handles parameter validation, file system adaptation, and error handling.
+ *
+ * @module api/show.ts
+ * @version 1.0.0
+ * @author EOL Git Implementation
+ * @since 1.0.0
+ *//**
  * Git show API - Display various types of git objects
  */
 

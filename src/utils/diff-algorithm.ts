@@ -1,4 +1,14 @@
 /**
+ * @fileoverview diff-algorithm utility functions
+ *
+ * Utility functions for diff-algorithm operations used throughout
+ * the Git implementation for common tasks and transformations.
+ *
+ * @module utils/diff-algorithm.ts
+ * @version 1.0.0
+ * @author EOL Git Implementation
+ * @since 1.0.0
+ *//**
  * Myers Diff Algorithm implementation
  * Efficiently computes the difference between two sequences
  */

@@ -1,5 +1,15 @@
-
-
+/**
+ * @fileoverview Error thrown for invalid file paths in Git operations
+ * 
+ * This error validates file paths to prevent issues with directories,
+ * leading/trailing slashes, and other path problems that can cause
+ * cross-platform compatibility issues.
+ * 
+ * @module errors/invalid-filepath
+ * @version 1.0.0
+ * @author EOL Git Implementation
+ * @since 1.0.0
+ */
 
 //// util
 

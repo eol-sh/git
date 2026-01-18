@@ -1,4 +1,13 @@
-
+/**
+ * @fileoverview internal-apis implementation
+ *
+ * Implementation of internal-apis functionality for the Git system.
+ *
+ * @module internal-apis.ts
+ * @version 1.0.0
+ * @author EOL Git Implementation
+ * @since 1.0.0
+ */
 
 
 //// util

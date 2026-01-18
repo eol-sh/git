@@ -1,4 +1,14 @@
-
+/**
+ * @fileoverview git-remote-http manager
+ *
+ * Manages git-remote-http resources including creation, access, and lifecycle.
+ * Provides centralized control and caching for git-remote-http operations.
+ *
+ * @module managers/git-remote-http.ts
+ * @version 1.0.0
+ * @author EOL Git Implementation
+ * @since 1.0.0
+ */
 
 
 //// import

@@ -1,4 +1,14 @@
-
+/**
+ * @fileoverview compare-tree-entry-path utility functions
+ *
+ * Utility functions for compare-tree-entry-path operations used throughout
+ * the Git implementation for common tasks and transformations.
+ *
+ * @module utils/compare-tree-entry-path.ts
+ * @version 1.0.0
+ * @author EOL Git Implementation
+ * @since 1.0.0
+ */
 
 
 //// util

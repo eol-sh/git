@@ -1,6 +1,22 @@
 
 
 
+/**
+ * @fileoverview Command for fetching and merging changes from remote repositories
+ * 
+ * This module implements Git's pull operation, which combines fetch and merge
+ * operations in a single command. It first downloads objects and references from
+ * the remote repository, then integrates those changes into the current branch.
+ * The command supports various merge strategies including fast-forward and merge
+ * commits, with comprehensive error handling for authentication, network issues,
+ * and merge conflicts during the integration process.
+ * 
+ * @module commands/pull
+ * @version 1.0.0
+ * @author EOL Git Implementation
+ * @since 1.0.0
+ */
+
 //// util
 
 import { _checkout } from "./checkout.ts";

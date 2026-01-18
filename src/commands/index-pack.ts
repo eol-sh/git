@@ -1,6 +1,22 @@
 
 
 
+/**
+ * @fileoverview Command for creating pack index files from Git packfiles
+ * 
+ * This module provides functionality to create index files for Git packfiles,
+ * which enable efficient random access to objects stored in packed format.
+ * The command processes packfiles to extract object metadata, generates hash-based
+ * lookup tables, and writes the corresponding .idx file. This is essential for
+ * repository maintenance and enables fast object retrieval from packed object
+ * storage, with support for progress reporting during large pack processing.
+ * 
+ * @module commands/index-pack
+ * @version 1.0.0
+ * @author EOL Git Implementation
+ * @since 1.0.0
+ */
+
 //// util
 
 import { GitPackIndex } from "../models/git-pack-index.ts";

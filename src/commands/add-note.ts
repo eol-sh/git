@@ -1,4 +1,15 @@
-
+/**
+ * @fileoverview Git add-note command implementation
+ *
+ * Internal implementation of the add-note Git operation. This module contains
+ * the core logic and should not be used directly - use the API layer instead.
+ *
+ * @module commands/add-note.ts
+ * @version 1.0.0
+ * @author EOL Git Implementation
+ * @since 1.0.0
+ * @internal
+ */
 
 
 //// util

@@ -1,4 +1,14 @@
-
+/**
+ * @fileoverview split-lines utility functions
+ *
+ * Utility functions for split-lines operations used throughout
+ * the Git implementation for common tasks and transformations.
+ *
+ * @module utils/split-lines.ts
+ * @version 1.0.0
+ * @author EOL Git Implementation
+ * @since 1.0.0
+ */
 
 
 //// import

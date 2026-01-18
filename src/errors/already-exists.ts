@@ -1,5 +1,15 @@
-
-
+/**
+ * @fileoverview Error thrown when attempting to create a Git object that already exists
+ * 
+ * This error is thrown when operations try to create branches, tags, remotes,
+ * or notes that already exist in the repository. Provides hints about using
+ * force options when applicable.
+ * 
+ * @module errors/already-exists
+ * @version 1.0.0
+ * @author EOL Git Implementation
+ * @since 1.0.0
+ */
 
 //// util
 

@@ -1,4 +1,14 @@
-
+/**
+ * @fileoverview Git get-remote-info API - High-level user interface
+ *
+ * This module provides the public API for get-remote-info operations in the Git implementation.
+ * It handles parameter validation, file system adaptation, and error handling.
+ *
+ * @module api/get-remote-info.ts
+ * @version 1.0.0
+ * @author EOL Git Implementation
+ * @since 1.0.0
+ */
 
 
 //// util

@@ -1,5 +1,14 @@
-
-
+/**
+ * @fileoverview Central export for all Git error classes
+ * 
+ * This module re-exports all error types used throughout the Git implementation.
+ * Import errors from this module rather than individual error files.
+ * 
+ * @module errors
+ * @version 1.0.0
+ * @author EOL Git Implementation
+ * @since 1.0.0
+ */
 
 //// export
 

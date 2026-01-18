@@ -1,4 +1,14 @@
-
+/**
+ * @fileoverview git-ignore manager
+ *
+ * Manages git-ignore resources including creation, access, and lifecycle.
+ * Provides centralized control and caching for git-ignore operations.
+ *
+ * @module managers/git-ignore.ts
+ * @version 1.0.0
+ * @author EOL Git Implementation
+ * @since 1.0.0
+ */
 
 
 //// util

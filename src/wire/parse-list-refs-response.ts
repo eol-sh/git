@@ -1,4 +1,15 @@
-
+/**
+ * @fileoverview parse-list-refs-response wire protocol implementation
+ *
+ * Handles parse-list-refs-response wire protocol operations for Git network
+ * communication including parsing and serialization.
+ *
+ * @module wire/parse-list-refs-response.ts
+ * @version 1.0.0
+ * @author EOL Git Implementation
+ * @since 1.0.0
+ * @internal
+ */
 
 
 //// util

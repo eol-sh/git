@@ -1,6 +1,22 @@
 
 
 
+/**
+ * @fileoverview Command for determining ancestor-descendant relationships between commits
+ * 
+ * This module provides functionality to determine whether one Git commit is a
+ * descendant of another commit in the repository's history. Using breadth-first
+ * traversal through the commit graph, it checks if there's a path from the
+ * descendant commit back to the ancestor commit. The command respects shallow
+ * clone boundaries and includes proper depth limiting to prevent infinite loops
+ * in complex repository histories.
+ * 
+ * @module commands/is-descendent
+ * @version 1.0.0
+ * @author EOL Git Implementation
+ * @since 1.0.0
+ */
+
 //// util
 
 import { _readObject } from "../storage/read-object.ts";

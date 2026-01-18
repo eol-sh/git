@@ -1,5 +1,14 @@
-
-
+/**
+ * @fileoverview Error thrown when a Git server returns an empty response
+ * 
+ * This error indicates a network or server issue where the Git server
+ * responded but with no content, which is unexpected for Git protocol operations.
+ * 
+ * @module errors/empty-server-response
+ * @version 1.0.0
+ * @author EOL Git Implementation
+ * @since 1.0.0
+ */
 
 //// util
 

@@ -1,4 +1,14 @@
-
+/**
+ * @fileoverview get-iterator utility functions
+ *
+ * Utility functions for get-iterator operations used throughout
+ * the Git implementation for common tasks and transformations.
+ *
+ * @module utils/get-iterator.ts
+ * @version 1.0.0
+ * @author EOL Git Implementation
+ * @since 1.0.0
+ */
 
 
 //// util

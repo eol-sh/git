@@ -1,4 +1,14 @@
 /**
+ * @fileoverview bisect-algorithm utility functions
+ *
+ * Utility functions for bisect-algorithm operations used throughout
+ * the Git implementation for common tasks and transformations.
+ *
+ * @module utils/bisect-algorithm.ts
+ * @version 1.0.0
+ * @author EOL Git Implementation
+ * @since 1.0.0
+ *//**
  * Git bisect algorithm utilities
  *
  * Implementation of binary search algorithm for finding the first bad commit

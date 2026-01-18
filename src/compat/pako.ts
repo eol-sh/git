@@ -1,4 +1,13 @@
-
+/**
+ * @fileoverview pako implementation
+ *
+ * Implementation of pako functionality for the Git system.
+ *
+ * @module compat/pako.ts
+ * @version 1.0.0
+ * @author EOL Git Implementation
+ * @since 1.0.0
+ */
 
 
 //// util

@@ -1,4 +1,15 @@
-
+/**
+ * @fileoverview Git write-blob command implementation
+ *
+ * Internal implementation of the write-blob Git operation. This module contains
+ * the core logic and should not be used directly - use the API layer instead.
+ *
+ * @module commands/write-blob.ts
+ * @version 1.0.0
+ * @author EOL Git Implementation
+ * @since 1.0.0
+ * @internal
+ */
 
 
 //// util

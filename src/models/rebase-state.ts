@@ -1,4 +1,14 @@
 /**
+ * @fileoverview rebase-state model definition
+ *
+ * Defines the rebase-state class and related types for representing
+ * Git objects and data structures in the implementation.
+ *
+ * @module models/rebase-state.ts
+ * @version 1.0.0
+ * @author EOL Git Implementation
+ * @since 1.0.0
+ *//**
  * Git rebase state models and types
  */
 

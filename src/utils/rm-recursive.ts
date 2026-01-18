@@ -1,4 +1,14 @@
-
+/**
+ * @fileoverview rm-recursive utility functions
+ *
+ * Utility functions for rm-recursive operations used throughout
+ * the Git implementation for common tasks and transformations.
+ *
+ * @module utils/rm-recursive.ts
+ * @version 1.0.0
+ * @author EOL Git Implementation
+ * @since 1.0.0
+ */
 
 
 //// util

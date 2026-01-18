@@ -1,4 +1,13 @@
-/*** Core type definitions for @eol/git ***/
+/**
+ * @fileoverview types implementation
+ *
+ * Implementation of types functionality for the Git system.
+ *
+ * @module types.ts
+ * @version 1.0.0
+ * @author EOL Git Implementation
+ * @since 1.0.0
+ *//*** Core type definitions for @eol/git ***/
 
 
 

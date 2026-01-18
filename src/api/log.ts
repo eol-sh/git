@@ -1,4 +1,14 @@
-
+/**
+ * @fileoverview Git log API - High-level user interface
+ *
+ * This module provides the public API for log operations in the Git implementation.
+ * It handles parameter validation, file system adaptation, and error handling.
+ *
+ * @module api/log.ts
+ * @version 1.0.0
+ * @author EOL Git Implementation
+ * @since 1.0.0
+ */
 
 
 //// util

@@ -1,4 +1,13 @@
-
+/**
+ * @fileoverview crc-32 implementation
+ *
+ * Implementation of crc-32 functionality for the Git system.
+ *
+ * @module compat/crc-32.ts
+ * @version 1.0.0
+ * @author EOL Git Implementation
+ * @since 1.0.0
+ */
 
 
 //// util

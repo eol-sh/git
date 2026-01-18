@@ -1,6 +1,20 @@
 
 
 
+/**
+ * @fileoverview Git branch command implementation
+ *
+ * Internal implementation of the branch Git operation. This module contains
+ * the core logic and should not be used directly - use the API layer instead.
+ *
+ * @module commands/branch.ts
+ * @version 1.0.0
+ * @author EOL Git Implementation
+ * @since 1.0.0
+ * @internal
+ */
+
+
 //// import
 
 import cleanGitRef from "clean-git-ref";

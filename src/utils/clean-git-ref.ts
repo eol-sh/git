@@ -1,4 +1,14 @@
-
+/**
+ * @fileoverview clean-git-ref utility functions
+ *
+ * Utility functions for clean-git-ref operations used throughout
+ * the Git implementation for common tasks and transformations.
+ *
+ * @module utils/clean-git-ref.ts
+ * @version 1.0.0
+ * @author EOL Git Implementation
+ * @since 1.0.0
+ */
 
 
 //// export

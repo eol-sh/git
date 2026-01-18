@@ -1,6 +1,22 @@
 
 
 
+/**
+ * @fileoverview Command for merging Git branches with conflict resolution support
+ * 
+ * This module implements Git's merge functionality, combining changes from different
+ * branches into a single commit. It supports various merge strategies including
+ * fast-forward merges, recursive merges for complex histories, and three-way merges
+ * with conflict detection. The command handles merge base calculation, tree merging,
+ * conflict resolution through custom merge drivers, and proper merge commit creation
+ * with multiple parent relationships.
+ * 
+ * @module commands/merge
+ * @version 1.0.0
+ * @author EOL Git Implementation
+ * @since 1.0.0
+ */
+
 //// util
 
 import { _commit } from "../commands/commit.ts";

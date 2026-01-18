@@ -1,4 +1,14 @@
-
+/**
+ * @fileoverview diff3 utility functions
+ *
+ * Utility functions for diff3 operations used throughout
+ * the Git implementation for common tasks and transformations.
+ *
+ * @module utils/diff3.ts
+ * @version 1.0.0
+ * @author EOL Git Implementation
+ * @since 1.0.0
+ */
 
 
 //// util

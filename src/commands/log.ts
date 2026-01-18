@@ -1,6 +1,23 @@
 
 
 
+/**
+ * @fileoverview Command for traversing and filtering Git commit history
+ * 
+ * This module provides comprehensive Git log functionality with support for
+ * filtering by date ranges, commit depth, and file paths. It includes advanced
+ * features like file rename following and memory-efficient streaming through
+ * large repositories. The command offers both generator-based iteration for
+ * processing commits one at a time and traditional array collection methods.
+ * It handles shallow clone boundaries and provides flexible commit history
+ * traversal with proper chronological ordering.
+ * 
+ * @module commands/log
+ * @version 1.0.0
+ * @author EOL Git Implementation
+ * @since 1.0.0
+ */
+
 //// util
 
 import { _readCommit } from "./read-commit.ts";

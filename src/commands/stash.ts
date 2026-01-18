@@ -1,6 +1,22 @@
 
 
 
+/**
+ * @fileoverview Command for managing Git stash operations including save, apply, and list
+ * 
+ * This module provides comprehensive Git stash functionality for temporarily saving
+ * and restoring working directory and index changes. The command supports creating
+ * new stashes from current changes, applying stashed changes back to the working
+ * directory, listing existing stashes, and managing the stash stack. It handles
+ * proper three-way merging when applying stashes and maintains the stash reference
+ * log for tracking stash history.
+ * 
+ * @module commands/stash
+ * @version 1.0.0
+ * @author EOL Git Implementation
+ * @since 1.0.0
+ */
+
 //// util
 
 import { _currentBranch } from "./current-branch.ts";

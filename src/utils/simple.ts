@@ -1,4 +1,14 @@
-
+/**
+ * @fileoverview simple utility functions
+ *
+ * Utility functions for simple operations used throughout
+ * the Git implementation for common tasks and transformations.
+ *
+ * @module utils/simple.ts
+ * @version 1.0.0
+ * @author EOL Git Implementation
+ * @since 1.0.0
+ */
 
 
 //// util

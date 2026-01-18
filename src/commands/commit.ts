@@ -1,6 +1,21 @@
 
 
 
+/**
+ * @fileoverview Command for creating Git commit objects with comprehensive metadata handling
+ * 
+ * This module provides functionality to create Git commits, which are snapshots of the repository
+ * state at a point in time. The command handles building tree objects from the current index,
+ * setting up author and committer information, managing parent relationships for merge commits,
+ * and optional commit signing with GPG keys. It supports both regular commits and amending
+ * existing commits, with proper validation of commit requirements and reference management.
+ * 
+ * @module commands/commit
+ * @version 1.0.0
+ * @author EOL Git Implementation
+ * @since 1.0.0
+ */
+
 //// util
 
 import { adaptFsInterface } from "../utils/fs-adapter.ts";

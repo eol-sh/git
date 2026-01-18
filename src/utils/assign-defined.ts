@@ -1,4 +1,14 @@
-
+/**
+ * @fileoverview assign-defined utility functions
+ *
+ * Utility functions for assign-defined operations used throughout
+ * the Git implementation for common tasks and transformations.
+ *
+ * @module utils/assign-defined.ts
+ * @version 1.0.0
+ * @author EOL Git Implementation
+ * @since 1.0.0
+ */
 
 
 //// export

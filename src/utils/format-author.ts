@@ -1,4 +1,14 @@
-
+/**
+ * @fileoverview format-author utility functions
+ *
+ * Utility functions for format-author operations used throughout
+ * the Git implementation for common tasks and transformations.
+ *
+ * @module utils/format-author.ts
+ * @version 1.0.0
+ * @author EOL Git Implementation
+ * @since 1.0.0
+ */
 
 
 //// util

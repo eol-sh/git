@@ -1,5 +1,14 @@
-
-
+/**
+ * @fileoverview Error thrown for invalid Git reference names
+ * 
+ * This error validates reference names against Git's naming rules and
+ * provides suggestions for valid alternatives when a name is rejected.
+ * 
+ * @module errors/invalid-ref-name
+ * @version 1.0.0
+ * @author EOL Git Implementation
+ * @since 1.0.0
+ */
 
 //// util
 
