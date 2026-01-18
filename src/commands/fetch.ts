@@ -3,14 +3,14 @@
 
 /**
  * @fileoverview Command for fetching objects and refs from remote repositories
- * 
+ *
  * This module implements Git's fetch operation, which downloads objects and references
  * from remote repositories. The command handles protocol negotiation, capability
  * discovery, packfile transfer, validation, and local reference updates. It supports
  * various fetch modes including shallow clones, single branch fetches, tag handling,
  * and pruning of stale references. The implementation includes comprehensive error
  * handling, progress reporting, and authentication support.
- * 
+ *
  * @module commands/fetch
  * @version 1.0.0
  * @author EOL Git Implementation

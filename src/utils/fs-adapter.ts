@@ -171,20 +171,20 @@ export function adaptFsInterface(fs: FsInterface): any {
     },
     readdirDeep: async(dirpath: string): Promise<string[]> => {
       const allFiles: string[] = [];
-      
+
       async function readRecursive(currentPath: string, basePath: string = ""): Promise<void> {
         try {
           const entries = await fs.readdir(currentPath);
           const entriesArray = Array.isArray(entries) ? entries : [];
-          
+
           for (const entry of entriesArray) {
             const entryName = typeof entry === "string" ? entry : (entry as any).name;
             const fullPath = currentPath === dirpath ? entryName : `${basePath}/${entryName}`;
             const absolutePath = `${currentPath}/${entryName}`;
-            
+
             try {
               const stat = await fs.lstat(absolutePath);
-              
+
               if (stat && typeof (stat as any).isDirectory === 'function' && (stat as any).isDirectory()) {
                 // Recursively process subdirectory
                 await readRecursive(absolutePath, fullPath);
@@ -202,7 +202,7 @@ export function adaptFsInterface(fs: FsInterface): any {
           return;
         }
       }
-      
+
       await readRecursive(dirpath);
       return allFiles;
     },
