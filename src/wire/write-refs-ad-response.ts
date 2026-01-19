@@ -11,15 +11,12 @@
  * @internal
  */
 
-
-//// util
+/*** UTILITY ------------------------------------------ ***/
 
 import { GitPktLine } from "../models/git-pkt-line.ts";
 import { pkg } from "../utils/pkg.ts";
 
-
-
-//// export
+/*** EXPORT ------------------------------------------- ***/
 
 export function writeRefsAdResponse({ capabilities, refs, symrefs }) {
   const stream = [];

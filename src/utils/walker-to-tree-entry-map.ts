@@ -10,15 +10,14 @@
  * @since 1.0.0
  */
 
-
-//// util
+/*** UTILITY ------------------------------------------ ***/
 
 import { _readObject } from "../storage/read-object.ts";
 import { _walk } from "../commands/walk.ts";
 import { _writeObject } from "../storage/write-object.ts";
 import { _writeTree } from "../commands/write-tree.ts";
 import { adaptFsInterface } from "../utils/fs-adapter.ts";
-import AsyncLock from "../compat/async-lock.ts";
+import { AsyncLock } from "./deno-native.ts";
 import { GitIgnoreManager } from "../managers/git-ignore.ts";
 import { GitIndexManager } from "../managers/git-index.ts";
 import { InternalError } from "../errors/internal.ts";
@@ -83,9 +82,7 @@ interface ApplyTreeChangesOptions {
 
 let lock: AsyncLock | undefined;
 
-
-
-//// export
+/*** EXPORT ------------------------------------------- ***/
 
 export function acquireLock<T>(ref: LockParams | string, callback: () => Promise<T>): Promise<T> {
   if (lock === undefined)
@@ -357,9 +354,7 @@ export async function writeTreeChanges({
   return _writeTree({ fs, gitdir, tree: treeEntries });
 }
 
-
-
-//// helper
+/*** HELPER ------------------------------------------- ***/
 
 /*** Make sure filepath, blob type, and blob object (from loose objects) plus oid are in sync and valid ***/
 async function checkAndWriteBlob(

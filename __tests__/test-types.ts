@@ -1,22 +1,14 @@
 /*** deno test test-types.ts --no-check ***/
 
-
-
-//// util
+/*** UTILITY ------------------------------------------ ***/
 
 import type {
   Author,
-  CloneOptions,
   CommitObject,
-  FsInterface,
-  GitHttpRequest,
-  GitHttpResponse,
   TreeEntry
 } from "../src/types.ts";
 
-
-
-//// program
+/*** PROGRAM ------------------------------------------ ***/
 
 Deno.test("TypeScript types are properly defined", () => {
   /*** Test Author interface ***/

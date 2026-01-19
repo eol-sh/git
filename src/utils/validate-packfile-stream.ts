@@ -8,32 +8,34 @@
  * @version 1.0.0
  * @author EOL Git Implementation
  * @since 1.0.0
- *//**
+ */
+
+/*** UTILITY ------------------------------------------ ***/
+
+/**
  * Streaming packfile validation utilities
  * Validates packfile integrity without loading entire file into memory
  */
-
-
 interface StreamValidationResult {
-  isValid: boolean;
   computedSha: string;
-  expectedSha: string;
   error?: string;
+  expectedSha: string;
+  isValid: boolean;
 }
+
+/*** EXPORT ------------------------------------------- ***/
 
 /**
  * Validate a packfile stream by computing SHA-1 of all content except the trailing 20 bytes
  * and comparing with the trailing 20 bytes (which contain the expected SHA)
  */
-export async function validatePackfileStream(
-  stream: ReadableStream<Uint8Array>
-): Promise<StreamValidationResult> {
+export async function validatePackfileStream(stream: ReadableStream<Uint8Array>): Promise<StreamValidationResult> {
   const reader = stream.getReader();
   const chunks: Uint8Array[] = [];
   let totalSize = 0;
 
   try {
-    // Read all chunks from stream
+    /*** Read all chunks from stream ***/
     while (true) {
       const { done, value } = await reader.read();
       if (done) break;
@@ -44,50 +46,52 @@ export async function validatePackfileStream(
 
     if (totalSize < 20) {
       return {
-        isValid: false,
         computedSha: "",
+        error: "Packfile too small to contain SHA checksum",
         expectedSha: "",
-        error: "Packfile too small to contain SHA checksum"
+        isValid: false
       };
     }
 
-    // Concatenate all chunks
+    /*** Concatenate all chunks ***/
     const fullPackfile = new Uint8Array(totalSize);
     let offset = 0;
+
     for (const chunk of chunks) {
       fullPackfile.set(chunk, offset);
       offset += chunk.length;
     }
 
-    // Extract expected SHA from last 20 bytes
+    /*** Extract expected SHA from last 20 bytes ***/
     const expectedShaBytes = fullPackfile.slice(-20);
-    const expectedSha = Array.from(expectedShaBytes)
-      .map(b => b.toString(16).padStart(2, '0'))
-      .join('');
 
-    // Compute SHA of everything except the last 20 bytes
+    const expectedSha = Array.from(expectedShaBytes)
+      .map(b => b.toString(16).padStart(2, "0"))
+      .join("");
+
+    /*** Compute SHA of everything except the last 20 bytes ***/
     const contentToHash = fullPackfile.slice(0, -20);
     const hashBuffer = await crypto.subtle.digest("SHA-1", contentToHash);
     const computedShaBytes = new Uint8Array(hashBuffer);
+
     const computedSha = Array.from(computedShaBytes)
-      .map(b => b.toString(16).padStart(2, '0'))
-      .join('');
+      .map(b => b.toString(16).padStart(2, "0"))
+      .join("");
 
     const isValid = computedSha === expectedSha;
 
     return {
-      isValid,
       computedSha,
+      error: isValid ? undefined : "SHA checksum mismatch",
       expectedSha,
-      error: isValid ? undefined : "SHA checksum mismatch"
+      isValid
     };
-
   } catch (error) {
     return {
-      isValid: false,
       computedSha: "",
+      error: `Validation failed: ${String(error)}`,
       expectedSha: "",
-      error: `Validation failed: ${(error as Error).message}`
+      isValid: false
     };
   } finally {
     reader.releaseLock();
@@ -99,38 +103,35 @@ export async function validatePackfileStream(
  * This allows for validation without buffering the entire packfile in memory
  */
 export function createPackfileValidationTransform(): {
+  getValidationResult: () => Promise<StreamValidationResult>;
   readable: ReadableStream<Uint8Array>;
   writable: WritableStream<Uint8Array>;
-  getValidationResult: () => Promise<StreamValidationResult>;
 } {
   const chunks: Uint8Array[] = [];
-  let totalSize = 0;
-  // let validationPromise: Promise<StreamValidationResult>;
   let resolveValidation: (result: StreamValidationResult) => void;
+  let totalSize = 0;
 
-  // Create the validation promise that will be resolved when stream ends
+  /*** Create the validation promise that will be resolved when stream ends ***/
   const validationPromise: Promise<StreamValidationResult> = new Promise((resolve) => {
     resolveValidation = resolve;
   });
 
   const writable = new WritableStream<Uint8Array>({
-    write(chunk) {
-      chunks.push(chunk.slice()); // Copy chunk to avoid mutation
-      totalSize += chunk.length;
-    },
-
-    close() {
-      // Validate when stream is closed
-      validateChunks().then(resolveValidation);
-    },
-
     abort(error) {
       resolveValidation({
-        isValid: false,
         computedSha: "",
+        error: `Stream aborted: ${String(error)}`,
         expectedSha: "",
-        error: `Stream aborted: ${error}`
+        isValid: false,
       });
+    },
+    close() {
+      /*** Validate when stream is closed ***/
+      validateChunks().then(resolveValidation);
+    },
+    write(chunk) {
+      chunks.push(chunk.slice()); /*** Copy chunk to avoid mutation ***/
+      totalSize += chunk.length;
     }
   });
 
@@ -170,39 +171,38 @@ export function createPackfileValidationTransform(): {
       // Extract expected SHA from last 20 bytes
       const expectedShaBytes = fullPackfile.slice(-20);
       const expectedSha = Array.from(expectedShaBytes)
-        .map(b => b.toString(16).padStart(2, '0'))
-        .join('');
+        .map(b => b.toString(16).padStart(2, "0"))
+        .join("");
 
       // Compute SHA of everything except the last 20 bytes
       const contentToHash = fullPackfile.slice(0, -20);
       const hashBuffer = await crypto.subtle.digest("SHA-1", contentToHash);
       const computedShaBytes = new Uint8Array(hashBuffer);
       const computedSha = Array.from(computedShaBytes)
-        .map(b => b.toString(16).padStart(2, '0'))
-        .join('');
+        .map(b => b.toString(16).padStart(2, "0"))
+        .join("");
 
       const isValid = computedSha === expectedSha;
 
       return {
-        isValid,
         computedSha,
+        error: isValid ? undefined : "SHA checksum mismatch",
         expectedSha,
-        error: isValid ? undefined : "SHA checksum mismatch"
+        isValid
       };
-
     } catch (error) {
       return {
-        isValid: false,
         computedSha: "",
+        error: `Validation failed: ${String(error)}`,
         expectedSha: "",
-        error: `Validation failed: ${(error as Error).message}`
+        isValid: false,
       };
     }
   }
 
   return {
+    getValidationResult: () => validationPromise,
     readable,
-    writable,
-    getValidationResult: () => validationPromise
+    writable
   };
 }

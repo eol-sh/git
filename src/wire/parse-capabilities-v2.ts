@@ -11,8 +11,7 @@
  * @internal
  */
 
-
-//// export
+/*** EXPORT ------------------------------------------- ***/
 
 export async function parseCapabilitiesV2(read: () => Promise<Uint8Array | boolean | null>): Promise<{
   capabilities2: Record<string, string | true>;

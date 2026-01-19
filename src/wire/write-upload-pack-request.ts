@@ -11,8 +11,7 @@
  * @internal
  */
 
-
-//// util
+/*** UTILITY ------------------------------------------ ***/
 
 import { GitPktLine } from "../models/git-pkt-line.ts";
 
@@ -26,9 +25,7 @@ interface WriteUploadPackRequestOptions {
   wants?: string[];
 }
 
-
-
-//// export
+/*** EXPORT ------------------------------------------- ***/
 
 export function writeUploadPackRequest({
   capabilities = [],

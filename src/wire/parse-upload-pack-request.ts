@@ -11,14 +11,11 @@
  * @internal
  */
 
-
-//// util
+/*** UTILITY ------------------------------------------ ***/
 
 import { GitPktLine } from "../models/git-pkt-line.ts";
 
-
-
-//// export
+/*** EXPORT ------------------------------------------- ***/
 
 export async function parseUploadPackRequest(stream) {
   const exclude = [];

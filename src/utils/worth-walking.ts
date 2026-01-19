@@ -10,8 +10,7 @@
  * @since 1.0.0
  */
 
-
-//// export
+/*** EXPORT ------------------------------------------- ***/
 
 export const worthWalking = (filepath: string, root?: string | null): boolean => {
   if (filepath === "." || root == null || root.length === 0 || root === ".")

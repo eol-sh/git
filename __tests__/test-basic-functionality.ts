@@ -1,15 +1,10 @@
 /*** deno test --allow-env __tests__/test-basic-functionality.ts --no-check ***/
 
-
-
-//// util
+/*** UTILITY ------------------------------------------ ***/
 
 import { Errors, version } from "../src/index.ts";
-import type { PackageInfo } from "../src/types.ts";
 
-
-
-//// program
+/*** PROGRAM ------------------------------------------ ***/
 
 Deno.test("basic module import", () => {
   if (typeof version !== "function")

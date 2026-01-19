@@ -11,8 +11,7 @@
  * @internal
  */
 
-
-//// util
+/*** UTILITY ------------------------------------------ ***/
 
 import { GitPktLine } from "../models/git-pkt-line.ts";
 
@@ -27,9 +26,7 @@ interface WriteReceivePackRequestOptions {
   triplets?: Triplet[];
 }
 
-
-
-//// export
+/*** EXPORT ------------------------------------------- ***/
 
 export function writeReceivePackRequest({ capabilities = [], triplets = [] }: WriteReceivePackRequestOptions): Uint8Array[] {
   const packstream: Uint8Array[] = [];

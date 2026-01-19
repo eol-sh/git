@@ -11,8 +11,7 @@
  * @internal
  */
 
-
-//// util
+/*** UTILITY ------------------------------------------ ***/
 
 import { GitPktLine } from "../models/git-pkt-line.ts";
 import { pkg } from "../utils/pkg.ts";
@@ -23,9 +22,7 @@ interface WriteListRefsRequestOptions {
   symrefs?: boolean;
 }
 
-
-
-//// export
+/*** EXPORT ------------------------------------------- ***/
 
 /**
  * @param {object} args

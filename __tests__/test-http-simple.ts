@@ -1,15 +1,11 @@
 /*** deno test --allow-net test-http-simple.ts --no-check ***/
 
-
-
-//// util
+/*** UTILITY ------------------------------------------ ***/
 
 import { request } from "../src/http/node/index.ts";
 import type { GitHttpRequest, GitHttpResponse } from "../src/types.ts";
 
-
-
-//// program
+/*** PROGRAM ------------------------------------------ ***/
 
 Deno.test("HTTP client basic functionality", { sanitizeResources: false }, async() => {
   /*** Test with a simple GET request to a public API ***/

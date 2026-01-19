@@ -11,17 +11,14 @@
  * @internal
  */
 
-
-//// util
+/*** UTILITY ------------------------------------------ ***/
 
 import { EmptyServerResponseError } from "../errors/empty-server-response.ts";
 import { GitPktLine } from "../models/git-pkt-line.ts";
 import { parseCapabilitiesV2 } from "../wire/parse-capabilities-v2.ts";
 import { ParseError } from "../errors/parse.ts";
 
-
-
-//// export
+/*** EXPORT ------------------------------------------- ***/
 
 export async function parseRefsAdResponse(stream: any, { service }: any) {
   const capabilities = new Set();
@@ -29,7 +26,7 @@ export async function parseRefsAdResponse(stream: any, { service }: any) {
   const symrefs = new Map();
 
   /*** There is probably a better way to do this, but for now
-  let’s just throw the result parser inline here. ***/
+       let’s just throw the result parser inline here. ***/
   const read = GitPktLine.streamReader(stream);
   let lineOne = await read();
 
@@ -99,9 +96,7 @@ export async function parseRefsAdResponse(stream: any, { service }: any) {
   return { capabilities, protocolVersion: 1, refs, symrefs };
 }
 
-
-
-//// helper
+/*** HELPER ------------------------------------------- ***/
 
 function splitAndAssert(line: any, sep: any, expected: any) {
   const split = line.trim().split(sep);

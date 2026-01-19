@@ -11,17 +11,14 @@
  * @internal
  */
 
-
-//// util
+/*** UTILITY ------------------------------------------ ***/
 
 import "../typedefs.ts";
 
 import { GitPktLine } from "../models/git-pkt-line.ts";
 import { ParseError } from "../errors/parse.ts";
 
-
-
-//// export
+/*** EXPORT ------------------------------------------- ***/
 
 export async function parseReceivePackResponse(packfile: any) {
   const read = GitPktLine.streamReader(packfile);

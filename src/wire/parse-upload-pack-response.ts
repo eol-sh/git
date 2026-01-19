@@ -11,15 +11,12 @@
  * @internal
  */
 
-
-//// util
+/*** UTILITY ------------------------------------------ ***/
 
 import { GitSideBand } from "../models/git-side-band.ts";
 import { InvalidOidError } from "../errors/invalid-oid.ts";
 
-
-
-//// export
+/*** EXPORT ------------------------------------------- ***/
 
 export async function parseUploadPackResponse(stream: any): Promise<{
   acks: any[];

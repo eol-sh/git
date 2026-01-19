@@ -1,16 +1,12 @@
 /*** deno test test-deno-native.ts --no-check ***/
 
-
-
-//// util
+/*** UTILITY ------------------------------------------ ***/
 
 import { AsyncLock, CRC32, crypto, parseArgs, path, promisify } from "../src/utils/deno-native.ts";
-import { createGitIgnore, GitIgnore, parseGitIgnore } from "../src/utils/gitignore-native.ts";
+import { createGitIgnore, parseGitIgnore } from "../src/utils/gitignore-native.ts";
 import { deflate, inflate, isNativeCompressionAvailable } from "../src/utils/compression-native.ts";
 
-
-
-//// program
+/*** PROGRAM ------------------------------------------ ***/
 
 Deno.test("Deno native utilities work correctly", async() => {
   const testFn = (value: string, callback: (err: null, result: string) => void) => {

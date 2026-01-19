@@ -1,16 +1,12 @@
 /*** deno test test-utilities.ts --no-check ***/
 
-
-
-//// util
+/*** UTILITY ------------------------------------------ ***/
 
 import { asyncIteratorToStream } from "../src/utils/async-iterator-to-stream.ts";
 import { calculateBasicAuthHeader } from "../src/utils/calculate-basic-auth-header.ts";
 import type { AuthOptions } from "../src/types.ts";
 
-
-
-//// program
+/*** PROGRAM ------------------------------------------ ***/
 
 Deno.test("calculateBasicAuthHeader creates correct auth header", () => {
   const authOptions: AuthOptions = {

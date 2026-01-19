@@ -10,11 +10,10 @@
  * @since 1.0.0
  */
 
-
-//// export
+/*** EXPORT ------------------------------------------- ***/
 
 export const CleanGitRef = {
-  clean(value) {
+  clean(value: unknown) {
     if (typeof value !== "string")
       throw new Error("Expected a string, received: " + value);
 
@@ -35,20 +34,18 @@ export const CleanGitRef = {
 
 export default CleanGitRef;
 
+/*** HELPER ------------------------------------------- ***/
 
-
-//// helper
-
-function escapeRegExp(string) {
-  return string.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"); // $& means the whole matched string
+function escapeRegExp(str: string) {
+  return str.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"); /*** $& means the whole matched string ***/
 }
 
-function replaceAll(str, search, replacement) {
+function replaceAll(str: string | unknown, search: RegExp | string, replacement: string) {
   search = search instanceof RegExp ?
     search :
     new RegExp(escapeRegExp(search), "g");
 
-  return str.replace(search, replacement);
+  return String(str).replace(search, replacement);
 }
 
 

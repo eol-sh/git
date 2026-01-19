@@ -1,33 +1,34 @@
 #!/usr/bin/env -S deno test --allow-read --allow-write
 
-/**
- * Tests for git bisect operation
- */
+/*** NATIVE ------------------------------------------- ***/
 
-import { assertEquals, assertExists, assertStringIncludes, assertRejects } from "https://deno.land/std@0.200.0/assert/mod.ts";
+import {
+  assertEquals,
+  assertExists,
+  assertRejects,
+  assertStringIncludes
+} from "https://deno.land/std@0.200.0/assert/mod.ts";
+
+/*** UTILITY ------------------------------------------ ***/
+
 import { bisect } from "../src/api/bisect.ts";
 import { init } from "../src/api/init.ts";
 import { add } from "../src/api/add.ts";
 import { commit } from "../src/api/commit.ts";
-import { branch } from "../src/api/branch.ts";
-import { checkout } from "../src/api/checkout.ts";
-import { 
-  parseRebaseTodo, 
-  formatRebaseTodo, 
-  validateTodoList, 
-  applyAutosquash 
-} from "../src/utils/rebase-todo.ts";
-import { 
-  calculateBisectCommit,
+
+import {
   checkBisectComplete,
   addBisectResult,
   validateBisectState,
   createInitialBisectState,
   calculateStepsRemaining
 } from "../src/utils/bisect-algorithm.ts";
+
 import { createAuthor, createFileSystem } from "../src/index.ts";
 
 const fs = createFileSystem();
+
+/*** PROGRAM ------------------------------------------ ***/
 
 Deno.test("Bisect algorithm - create initial state", () => {
   const state = createInitialBisectState(
@@ -35,7 +36,7 @@ Deno.test("Bisect algorithm - create initial state", () => {
     ["good456", "good789"],
     "start123"
   );
-  
+
   assertEquals(state.bad, "bad123");
   assertEquals(state.good, ["good456", "good789"]);
   assertEquals(state.start, "start123");
@@ -49,7 +50,7 @@ Deno.test("Bisect algorithm - validate state", () => {
     ["good456"],
     "start123"
   );
-  
+
   const validation = validateBisectState(validState);
   assertEquals(validation.valid, true);
   assertEquals(validation.errors.length, 0);
@@ -60,7 +61,7 @@ Deno.test("Bisect algorithm - validate state", () => {
     [],
     "start123"
   );
-  
+
   const invalidValidation = validateBisectState(invalidState);
   assertEquals(invalidValidation.valid, false);
   assertEquals(invalidValidation.errors.length, 1);
@@ -73,9 +74,9 @@ Deno.test("Bisect algorithm - add result", () => {
     ["good456"],
     "start123"
   );
-  
+
   const newState = addBisectResult(initialState, "test789", "good");
-  
+
   assertEquals(newState.log.length, 1);
   assertEquals(newState.log[0].oid, "test789");
   assertEquals(newState.log[0].result, "good");
@@ -89,16 +90,16 @@ Deno.test("Bisect algorithm - check complete", () => {
     ["good456"],
     "start123"
   );
-  
+
   // Add some test results
   const stateWithResults = addBisectResult(
     addBisectResult(state, "commit1", "good"),
-    "commit2", 
+    "commit2",
     "bad"
   );
-  
+
   const completion = checkBisectComplete(stateWithResults);
-  
+
   // Should be complete with small number of commits
   assertEquals(completion.complete, true);
   assertExists(completion.culprit);
@@ -110,9 +111,9 @@ Deno.test("Bisect algorithm - calculate steps remaining", () => {
     ["good456"],
     "start123"
   );
-  
+
   const steps = calculateStepsRemaining(state);
-  
+
   // Should be a reasonable number
   assertEquals(typeof steps, "number");
   assertEquals(steps >= 0, true);
@@ -120,14 +121,14 @@ Deno.test("Bisect algorithm - calculate steps remaining", () => {
 
 Deno.test("Bisect - start session", async () => {
   const testDir = await Deno.makeTempDir();
-  
+
   try {
     // Initialize repo
     await init({ fs, dir: testDir, defaultBranch: "main" });
-    
+
     // Create some commits
     const author = createAuthor("Test User", "test@example.com");
-    
+
     // Create first commit (good)
     await Deno.writeTextFile(`${testDir}/file1.txt`, "Good content\n");
     await add({ fs, dir: testDir, filepath: "file1.txt" });
@@ -141,12 +142,12 @@ Deno.test("Bisect - start session", async () => {
     // Create second commit (bad)
     await Deno.writeTextFile(`${testDir}/file2.txt`, "Bad content\n");
     await add({ fs, dir: testDir, filepath: "file2.txt" });
-    const badCommit = await commit({
-      fs,
-      dir: testDir,
-      message: "Bad commit",
-      author
-    });
+    // const badCommit = await commit({
+    //   fs,
+    //   dir: testDir,
+    //   message: "Bad commit",
+    //   author
+    // });
 
     // Start bisect
     const result = await bisect.start({
@@ -160,7 +161,7 @@ Deno.test("Bisect - start session", async () => {
     assertEquals(typeof result.remaining, "number");
     assertEquals(typeof result.steps, "number");
     assertStringIncludes(result.message, "Bisecting");
-    
+
   } finally {
     await Deno.remove(testDir, { recursive: true });
   }
@@ -168,13 +169,13 @@ Deno.test("Bisect - start session", async () => {
 
 Deno.test("Bisect - mark good and bad", async () => {
   const testDir = await Deno.makeTempDir();
-  
+
   try {
     // Initialize repo
     await init({ fs, dir: testDir });
-    
+
     const author = createAuthor("Test User", "test@example.com");
-    
+
     // Create commits
     await Deno.writeTextFile(`${testDir}/file.txt`, "1\n");
     await add({ fs, dir: testDir, filepath: "file.txt" });
@@ -187,21 +188,21 @@ Deno.test("Bisect - mark good and bad", async () => {
 
     await Deno.writeTextFile(`${testDir}/file.txt`, "1\n2\n");
     await add({ fs, dir: testDir, filepath: "file.txt" });
-    const commit2 = await commit({
-      fs,
-      dir: testDir,
-      message: "Commit 2",
-      author
-    });
+    // const commit2 = await commit({
+    //   fs,
+    //   dir: testDir,
+    //   message: "Commit 2",
+    //   author
+    // });
 
     await Deno.writeTextFile(`${testDir}/file.txt`, "1\n2\n3\n");
     await add({ fs, dir: testDir, filepath: "file.txt" });
-    const commit3 = await commit({
-      fs,
-      dir: testDir,
-      message: "Commit 3",
-      author
-    });
+    // const commit3 = await commit({
+    //   fs,
+    //   dir: testDir,
+    //   message: "Commit 3",
+    //   author
+    // });
 
     // Start bisect
     await bisect.start({
@@ -219,7 +220,7 @@ Deno.test("Bisect - mark good and bad", async () => {
 
     assertExists(badResult);
     assertEquals(typeof badResult.remaining, "number");
-    
+
   } finally {
     await Deno.remove(testDir, { recursive: true });
   }
@@ -227,13 +228,13 @@ Deno.test("Bisect - mark good and bad", async () => {
 
 Deno.test("Bisect - reset session", async () => {
   const testDir = await Deno.makeTempDir();
-  
+
   try {
     // Initialize repo
     await init({ fs, dir: testDir });
-    
+
     const author = createAuthor("Test User", "test@example.com");
-    
+
     // Create a commit
     await Deno.writeTextFile(`${testDir}/file.txt`, "Content\n");
     await add({ fs, dir: testDir, filepath: "file.txt" });
@@ -257,7 +258,7 @@ Deno.test("Bisect - reset session", async () => {
       fs,
       dir: testDir
     });
-    
+
   } finally {
     await Deno.remove(testDir, { recursive: true });
   }
@@ -265,13 +266,13 @@ Deno.test("Bisect - reset session", async () => {
 
 Deno.test("Bisect - get log", async () => {
   const testDir = await Deno.makeTempDir();
-  
+
   try {
     // Initialize repo
     await init({ fs, dir: testDir });
-    
+
     const author = createAuthor("Test User", "test@example.com");
-    
+
     // Create a commit
     await Deno.writeTextFile(`${testDir}/file.txt`, "Content\n");
     await add({ fs, dir: testDir, filepath: "file.txt" });
@@ -298,7 +299,7 @@ Deno.test("Bisect - get log", async () => {
 
     assertExists(log);
     assertEquals(Array.isArray(log), true);
-    
+
   } finally {
     await Deno.remove(testDir, { recursive: true });
   }
@@ -306,13 +307,13 @@ Deno.test("Bisect - get log", async () => {
 
 Deno.test("Bisect - skip commit", async () => {
   const testDir = await Deno.makeTempDir();
-  
+
   try {
     // Initialize repo
     await init({ fs, dir: testDir });
-    
+
     const author = createAuthor("Test User", "test@example.com");
-    
+
     // Create commits
     await Deno.writeTextFile(`${testDir}/file.txt`, "1\n");
     await add({ fs, dir: testDir, filepath: "file.txt" });
@@ -348,7 +349,7 @@ Deno.test("Bisect - skip commit", async () => {
 
     assertExists(result);
     assertEquals(typeof result.remaining, "number");
-    
+
   } finally {
     await Deno.remove(testDir, { recursive: true });
   }
@@ -356,11 +357,11 @@ Deno.test("Bisect - skip commit", async () => {
 
 Deno.test("Bisect - error handling", async () => {
   const testDir = await Deno.makeTempDir();
-  
+
   try {
     // Initialize repo
     await init({ fs, dir: testDir });
-    
+
     // Try to start bisect twice (should fail)
     await bisect.start({
       fs,
@@ -382,7 +383,7 @@ Deno.test("Bisect - error handling", async () => {
       Error,
       "already in progress"
     );
-    
+
   } finally {
     await Deno.remove(testDir, { recursive: true });
   }
@@ -390,13 +391,13 @@ Deno.test("Bisect - error handling", async () => {
 
 Deno.test("Bisect - custom terms", async () => {
   const testDir = await Deno.makeTempDir();
-  
+
   try {
     // Initialize repo
     await init({ fs, dir: testDir });
-    
+
     const author = createAuthor("Test User", "test@example.com");
-    
+
     // Create a commit
     await Deno.writeTextFile(`${testDir}/file.txt`, "Content\n");
     await add({ fs, dir: testDir, filepath: "file.txt" });
@@ -418,7 +419,7 @@ Deno.test("Bisect - custom terms", async () => {
 
     assertExists(result);
     assertEquals(typeof result.remaining, "number");
-    
+
   } finally {
     await Deno.remove(testDir, { recursive: true });
   }
@@ -426,13 +427,13 @@ Deno.test("Bisect - custom terms", async () => {
 
 Deno.test("Bisect - replay from file", async () => {
   const testDir = await Deno.makeTempDir();
-  
+
   try {
     // Initialize repo
     await init({ fs, dir: testDir });
-    
+
     const author = createAuthor("Test User", "test@example.com");
-    
+
     // Create a commit
     await Deno.writeTextFile(`${testDir}/file.txt`, "Content\n");
     await add({ fs, dir: testDir, filepath: "file.txt" });
@@ -460,7 +461,7 @@ git bisect bad HEAD
 
     assertExists(result);
     assertEquals(typeof result.remaining, "number");
-    
+
   } finally {
     await Deno.remove(testDir, { recursive: true });
   }

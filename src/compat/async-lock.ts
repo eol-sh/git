@@ -9,13 +9,10 @@
  * @since 1.0.0
  */
 
-
-//// util
+/*** UTILITY ------------------------------------------ ***/
 
 import { AsyncLock } from "../utils/deno-native.ts";
 
-
-
-//// export
+/*** EXPORT ------------------------------------------- ***/
 
 export default AsyncLock;
