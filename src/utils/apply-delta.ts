@@ -10,15 +10,12 @@
  * @since 1.0.0
  */
 
-
-//// util
+/*** UTILITY ------------------------------------------ ***/
 
 import { BufferCursor } from "../utils/buffer-cursor.ts";
 import { InternalError } from "../errors/internal.ts";
 
-
-
-//// export
+/*** EXPORT ------------------------------------------- ***/
 
 export function applyDelta(delta: Uint8Array, source: Uint8Array): Uint8Array {
   const reader = new BufferCursor(delta);
@@ -53,9 +50,7 @@ export function applyDelta(delta: Uint8Array, source: Uint8Array): Uint8Array {
   return target;
 }
 
-
-
-//// helper
+/*** HELPER ------------------------------------------- ***/
 
 function readCompactLE(reader: BufferCursor, flags: number, size: number): number {
   let result = 0;

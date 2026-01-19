@@ -7,11 +7,9 @@
  * @version 1.0.0
  * @author EOL Git Implementation
  * @since 1.0.0
- *//*** Core type definitions for @eol/git ***/
+ */
 
-
-
-//// export
+/*** EXPORT ------------------------------------------- ***/
 
 export interface Author {
   email: string;

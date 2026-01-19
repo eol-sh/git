@@ -10,14 +10,11 @@
  * @since 1.0.0
  */
 
-
-//// util
+/*** UTILITY ------------------------------------------ ***/
 
 import { MissingParameterError } from "../errors/missing-parameter.ts";
 
-
-
-//// export
+/*** EXPORT ------------------------------------------- ***/
 
 export function assertParameter(name: string, value: any): void {
   if (value === undefined)

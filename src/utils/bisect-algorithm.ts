@@ -8,7 +8,9 @@
  * @version 1.0.0
  * @author EOL Git Implementation
  * @since 1.0.0
- *//**
+ */
+
+/**
  * Git bisect algorithm utilities
  *
  * Implementation of binary search algorithm for finding the first bad commit
@@ -27,13 +29,12 @@ interface BisectAlgorithmOptions {
   gitdir: string;
 }
 
+/*** EXPORT ------------------------------------------- ***/
+
 /**
  * Calculate the next commit to test during bisect
  */
-export async function calculateBisectCommit(
-  state: BisectState,
-  options: BisectAlgorithmOptions
-): Promise<string | null> {
+export async function calculateBisectCommit(state: BisectState, options: BisectAlgorithmOptions): Promise<string | null> {
   // const { fs, gitdir } = options;
 
   // Get all commits between good and bad commits
@@ -60,11 +61,7 @@ export async function calculateBisectCommit(
 /**
  * Get all commits in the range between good and bad commits
  */
-async function getCommitRange(
-  state: BisectState,
-  options: BisectAlgorithmOptions
-): Promise<string[]> {
-
+async function getCommitRange(state: BisectState, options: BisectAlgorithmOptions): Promise<string[]> {
   try {
     // Get commit history from bad to all good commits
     const commits = new Set<string>();

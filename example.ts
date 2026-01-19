@@ -12,16 +12,16 @@
 import {
   add,
   commit,
-  currentBranch,
+  // currentBranch,
   init,
-  listFiles,
-  log,
+  // listFiles,
+  // log,
   setConfig,
-  status,
+  // status,
   version
 } from "./src/index.ts";
 
-import { FileSystem } from "./src/models/file-system.ts";
+// import { FileSystem } from "./src/models/file-system.ts";
 
 async function main(): Promise<void> {
   console.log("🦕 EOL Git + Deno + TypeScript");
@@ -343,12 +343,13 @@ Generated: ${new Date().toISOString()}
     console.log("   Full Git repository operations may need additional filesystem work.");
   }
 
-  console.log("\n🎉 Deno + TypeScript demo completed!");
+  console.group("🎉 Deno + TypeScript demo completed!");
   console.log("📚 Learn more:");
-  console.log("   • DENO_README.md - Deno-specific documentation");
-  console.log("   • TYPESCRIPT_MIGRATION.md - Migration details");
-  console.log("   • __tests__/ - Test examples");
-  console.log("   • src/ - Full TypeScript source code");
+  console.log("• DENO_README.md - Deno-specific documentation");
+  console.log("• TYPESCRIPT_MIGRATION.md - Migration details");
+  console.log("• __tests__/ - Test examples");
+  console.log("• src/ - Full TypeScript source code");
+  console.groupEnd();
 }
 
 // Enhanced error handling for Deno

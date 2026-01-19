@@ -10,8 +10,7 @@
  * @since 1.0.0
  */
 
-
-//// export
+/*** EXPORT ------------------------------------------- ***/
 
 export function basename(path: string): string {
   const last = Math.max(path.lastIndexOf("/"), path.lastIndexOf("\\"));

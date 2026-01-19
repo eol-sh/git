@@ -10,82 +10,37 @@
  * @since 1.0.0
  */
 
-
-//// util
+ /*** UTILITY ------------------------------------------ ***/
 
 import { FileSystem } from "../models/file-system.ts";
 import type { FsInterface } from "../types.ts";
 
+/*** EXPORT ------------------------------------------- ***/
 
-
-//// export
-
-/**
- * Unified filesystem interface that satisfies all manager requirements
- */
 export interface UnifiedFileSystemLike {
   /*** Core file operations ***/
   exists(filepath: string): Promise<boolean>;
   lstat(filepath: string): Promise<any>;
   read(filepath: string, options?: { encoding?: string } | string): Promise<string | Uint8Array | null>;
   write(filepath: string, contents: string | Uint8Array, options?: { encoding?: string } | string): Promise<void>;
-
   /*** Directory operations ***/
   readdirDeep?(dirpath: string): Promise<string[]>;
-
   /*** Cleanup operations ***/
   rm?(filepath: string): Promise<void>;
 }
 
-/**
- * Creates a unified filesystem adapter that works with all managers
- */
-export function createUnifiedAdapter(fileSystem: FileSystem): UnifiedFileSystemLike {
-  return {
-    exists: (filepath: string) => fileSystem.exists(filepath),
-    lstat: (filepath: string) => fileSystem.lstat(filepath),
-    read: async(filepath: string, options?: { encoding?: string } | string) => {
-      /*** Handle both object and string options for compatibility ***/
-      const opts = typeof options === "string" ?
-        { encoding: options } :
-        options;
-      const result = await fileSystem.read(filepath, opts);
-
-      /*** GitIgnoreManager expects string, GitIndexManager expects Uint8Array | string | null ***/
-      if (result === null)
-        return null;
-
-      if (typeof result === "string")
-        return result;
-
-      /*** If encoding was requested, decode to string ***/
-      if (opts?.encoding)
-        return new TextDecoder().decode(result);
-
-      return result;
-    },
-    readdirDeep: (dirpath: string) => fileSystem.readdirDeep(dirpath),
-    rm: (filepath: string) => fileSystem.rm(filepath),
-    write: async(filepath: string, contents: string | Uint8Array, _options?: { encoding?: string } | string) => {
-      /*** Handle both string and Uint8Array content ***/
-      if (typeof contents === "string") {
-        const opts = typeof _options === "string" ?
-          { encoding: _options } :
-          _options;
-
-        await fileSystem.write(filepath, contents, opts);
-      } else {
-        /*** For Uint8Array, write directly ***/
-        await fileSystem.write(filepath, contents);
-      }
+export const adaptFsInterfaceForGitIndex = (fs: FsInterface) => ({
+  lstat: (filepath: string) => fs.lstat(filepath),
+  read: async(filepath: string) => {
+    try {
+      return await fs.readFile(filepath);
+    } catch {
+      return null;
     }
-  };
-}
+  },
+  write: (filepath: string, buffer: Uint8Array) => fs.writeFile(filepath, buffer)
+});
 
-/**
- * Legacy adapter for FsInterface compatibility
- * Adapts a FileSystem instance to the FsInterface used by commands
- */
 export function adaptFileSystem(fileSystem: FileSystem): FsInterface {
   return {
     lstat: (path: string) => fileSystem.lstat(path).then(stat => {
@@ -97,8 +52,13 @@ export function adaptFileSystem(fileSystem: FileSystem): FsInterface {
     mkdir: (path: string, _options?: { recursive?: boolean }) => fileSystem.mkdir(path),
     read: async (path: string) => {
       const result = await fileSystem.read(path);
-      if (result === null) throw new Error(`File not found: ${path}`);
-      if (typeof result === 'string') return new TextEncoder().encode(result);
+
+      if (result === null)
+        throw new Error(`File not found: ${path}`);
+
+      if (typeof result === "string")
+        return new TextEncoder().encode(result);
+
       return result;
     },
     readdir: (path: string) => fileSystem.readdir(path).then(result => result || []),
@@ -112,9 +72,9 @@ export function adaptFileSystem(fileSystem: FileSystem): FsInterface {
       return result;
     }),
     rm: (path: string, options?: { recursive?: boolean; force?: boolean }) => {
-      if (options?.recursive) {
+      if (options?.recursive)
         return fileSystem.rmdir(path);
-      }
+
       return fileSystem.rm(path);
     },
     rmdir: (path: string) => fileSystem.rmdir(path),
@@ -129,22 +89,6 @@ export function adaptFileSystem(fileSystem: FileSystem): FsInterface {
   };
 }
 
-/*** Legacy exports for existing code ***/
-export const adaptFsInterfaceForGitIndex = (fs: FsInterface) => ({
-  lstat: (filepath: string) => fs.lstat(filepath),
-  read: async(filepath: string) => {
-    try {
-      return await fs.readFile(filepath);
-    } catch {
-      return null;
-    }
-  },
-  write: (filepath: string, buffer: Uint8Array) => fs.writeFile(filepath, buffer)
-});
-
-/**
- * Creates adapter from FsInterface to UnifiedFileSystemLike (compatible with all manager interfaces)
- */
 export function adaptFsInterface(fs: FsInterface): any {
   return {
     exists: async(filepath: string) => {
@@ -185,20 +129,17 @@ export function adaptFsInterface(fs: FsInterface): any {
             try {
               const stat = await fs.lstat(absolutePath);
 
-              if (stat && typeof (stat as any).isDirectory === 'function' && (stat as any).isDirectory()) {
-                // Recursively process subdirectory
+              if (stat && typeof (stat as any).isDirectory === "function" && (stat as any).isDirectory())
                 await readRecursive(absolutePath, fullPath);
-              } else {
-                // Add file to results
+              else
                 allFiles.push(fullPath);
-              }
             } catch {
-              // Skip entries that can't be stat'd (broken symlinks, permission issues)
+              /*** Skip entries that can’t be stat’d (broken symlinks, permission issues) ***/
               continue;
             }
           }
         } catch {
-          // Skip directories that can't be read
+          /*** Skip directories that can't be read ***/
           return;
         }
       }
@@ -217,7 +158,6 @@ export function adaptFsInterface(fs: FsInterface): any {
   };
 }
 
-/*** Manager-specific adapters for compatibility ***/
 export function adaptFsForGitConfig(fileSystem: FileSystem) {
   return {
     exists: (filepath: string) => fileSystem.exists(filepath),
@@ -226,8 +166,7 @@ export function adaptFsForGitConfig(fileSystem: FileSystem) {
       const result = await fileSystem.read(filepath, { encoding: _optionsR?.encoding || "utf8" } as any);
       return result as string;
     },
-    write: (filepath: string, contents: string, _optionsW?: { encoding?: string }) =>
-      fileSystem.write(filepath, contents, { encoding: _optionsW?.encoding || "utf8" } as any)
+    write: (filepath: string, contents: string, _optionsW?: { encoding?: string }) => fileSystem.write(filepath, contents, { encoding: _optionsW?.encoding || "utf8" } as any)
   };
 }
 
@@ -238,21 +177,6 @@ export function adaptFsForGitIgnore(fileSystem: FileSystem) {
       const result = await fileSystem.read(filepath, { encoding } as any);
       return result as string;
     }
-  };
-}
-
-export function adaptFsForGitRef(fileSystem: FileSystem) {
-  return {
-    exists: (filepath: string) => fileSystem.exists(filepath),
-    lstat: (filepath: string) => fileSystem.lstat(filepath),
-    read: async(filepath: string, _optionsR?: { encoding?: string }) => {
-      const result = await fileSystem.read(filepath, { encoding: _optionsR?.encoding || "utf8" } as any);
-      return result as string;
-    },
-    readdirDeep: (dirpath: string) => fileSystem.readdirDeep(dirpath),
-    rm: (filepath: string) => fileSystem.rm(filepath),
-    write: (filepath: string, contents: string, encoding?: string) =>
-      fileSystem.write(filepath, contents, { encoding: encoding || "utf8" } as any)
   };
 }
 
@@ -268,7 +192,62 @@ export function adaptFsForGitIndex(fileSystem: FileSystem) {
       }
     },
     rm: (filepath: string) => fileSystem.rm(filepath),
-    write: (filepath: string, contents: string | Uint8Array, _options2?: { mode?: number }) =>
-      fileSystem.write(filepath, contents)
+    write: (filepath: string, contents: string | Uint8Array, _options2?: { mode?: number }) => fileSystem.write(filepath, contents)
+  };
+}
+
+export function adaptFsForGitRef(fileSystem: FileSystem) {
+  return {
+    exists: (filepath: string) => fileSystem.exists(filepath),
+    lstat: (filepath: string) => fileSystem.lstat(filepath),
+    read: async(filepath: string, _optionsR?: { encoding?: string }) => {
+      const result = await fileSystem.read(filepath, { encoding: _optionsR?.encoding || "utf8" } as any);
+      return result as string;
+    },
+    readdirDeep: (dirpath: string) => fileSystem.readdirDeep(dirpath),
+    rm: (filepath: string) => fileSystem.rm(filepath),
+    write: (filepath: string, contents: string, encoding?: string) => fileSystem.write(filepath, contents, { encoding: encoding || "utf8" } as any)
+  };
+}
+
+export function createUnifiedAdapter(fileSystem: FileSystem): UnifiedFileSystemLike {
+  return {
+    exists: (filepath: string) => fileSystem.exists(filepath),
+    lstat: (filepath: string) => fileSystem.lstat(filepath),
+    read: async(filepath: string, options?: { encoding?: string } | string) => {
+      /*** Handle both object and string options for compatibility ***/
+      const opts = typeof options === "string" ?
+        { encoding: options } :
+        options;
+      const result = await fileSystem.read(filepath, opts);
+
+      /*** GitIgnoreManager expects string, GitIndexManager expects Uint8Array | string | null ***/
+      if (result === null)
+        return null;
+
+      if (typeof result === "string")
+        return result;
+
+      /*** If encoding was requested, decode to string ***/
+      if (opts?.encoding)
+        return new TextDecoder().decode(result);
+
+      return result;
+    },
+    readdirDeep: (dirpath: string) => fileSystem.readdirDeep(dirpath),
+    rm: (filepath: string) => fileSystem.rm(filepath),
+    write: async(filepath: string, contents: string | Uint8Array, _options?: { encoding?: string } | string) => {
+      /*** Handle both string and Uint8Array content ***/
+      if (typeof contents === "string") {
+        const opts = typeof _options === "string" ?
+          { encoding: _options } :
+          _options;
+
+        await fileSystem.write(filepath, contents, opts);
+      } else {
+        /*** For Uint8Array, write directly ***/
+        await fileSystem.write(filepath, contents);
+      }
+    }
   };
 }

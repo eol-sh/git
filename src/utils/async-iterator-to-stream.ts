@@ -10,8 +10,7 @@
  * @since 1.0.0
  */
 
-
-//// export
+/*** EXPORT ------------------------------------------- ***/
 
 export function asyncIteratorToStream<T>(iter: AsyncIterable<T>): ReadableStream<T> {
   return new ReadableStream<T>({

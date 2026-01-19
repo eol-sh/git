@@ -1,22 +1,22 @@
 # Git for Deno
 
-`@eol/git` is a pure Deno/TypeScript fork of [`isomorphic-git`](https://github.com/isomorphic-git/isomorphic-git), itself a JavaScript reimplementation of git. This codebase has zero npm dependencies, no JavaScript files, and is fully typed.
+`@eol/git` is a pure Deno/TypeScript fork of [`isomorphic-git`](https://github.com/isomorphic-git/isomorphic-git), itself a JavaScript reimplementation of git. This codebase has zero npm dependencies, no JavaScript files, and is fully typed.
 
 ## Features
 
-- 🦕 **Native Deno Support** - Built specifically for Deno with modern TypeScript
-- 🔒 **Type Safe** - Fully typed with strict TypeScript for better developer experience
-- 📦 **Zero Dependencies** - Pure TypeScript implementation with no external Git binaries required
-- 🌐 **HTTP/HTTPS Support** - Clone, fetch, and push over HTTP(S) protocols
-- 📁 **Complete Git Operations** - Full support for commits, branches, merging, staging, and more
-- 🚀 **Async/Await** - Modern Promise-based API throughout
+- 🦕 **Native Deno Support** - Built specifically for Deno with modern TypeScript
+- 🔒 **Type Safe** - Fully typed with strict TypeScript for better developer experience
+- 📦 **Zero Dependencies** - Pure TypeScript implementation with no external Git binaries required
+- 🌐 **HTTP/HTTPS Support** - Clone, fetch, and push over HTTP(S) protocols
+- 📁 **Complete Git Operations** - Full support for commits, branches, merging, staging, and more
+- 🚀 **Async/Await** - Modern Promise-based API throughout
 
 ## Quick Start
 
 ### Installation
 
 ```typescript
-// Import directly from your local path or a Git repository
+/*** Import directly from your local path or a Git repository ***/
 import * as git from "./src/index.ts";
 ```
 
@@ -26,17 +26,17 @@ import * as git from "./src/index.ts";
 import * as git from "./src/index.ts";
 import { FileSystem } from "./src/models/file-system.ts";
 
-// Initialize a filesystem interface
+/*** Initialize a filesystem interface ***/
 const fs = new FileSystem();
 
-// Clone a repository
+/*** Clone a repository ***/
 await git.clone({
   dir: "./my-repo",
   fs,
   url: "https://eol.sh/~user/program.git"
 });
 
-// Add and commit files
+/*** Add and commit files ***/
 await git.add({
   dir: "./my-repo",
   filepath: "README.md",
@@ -53,7 +53,7 @@ await git.commit({
   message: "Initial commit"
 });
 
-// Push changes
+/*** Push changes ***/
 await git.push({
   dir: "./my-repo",
   fs,
@@ -66,7 +66,7 @@ await git.push({
 
 ### FileSystem Interface
 
-All Git operations require a filesystem interface that handles file I/O operations:
+All Git operations require a filesystem interface that handles file I/O operations:
 
 ```typescript
 import { FileSystem } from "./src/models/file-system.ts";
@@ -90,11 +90,11 @@ await git.init({
 
 ```typescript
 await git.clone({
-  depth: 1, // Optional: shallow clone
+  depth: 1, /*** Optional: shallow clone ***/
   dir: "./cloned-repo",
   fs,
-  ref: "primary", // Optional: specific branch
-  singleBranch: true, // Optional: clone only one branch
+  ref: "primary", /*** Optional: specific branch ***/
+  singleBranch: true, /*** Optional: clone only one branch ***/
   url: "https://eol.sh/~user/program.git"
 });
 ```
@@ -104,14 +104,14 @@ await git.clone({
 #### Staging Files
 
 ```typescript
-// Stage a single file
+/*** Stage a single file ***/
 await git.add({
   dir: "./repo",
   filepath: "src/main.ts",
   fs
 });
 
-// Stage all files
+/*** Stage all files ***/
 await git.add({
   dir: "./repo",
   filepath: ".",
@@ -127,8 +127,8 @@ const status = await git.statusMatrix({
   fs
 });
 
-// Status matrix format: [filepath, HEAD, WORKDIR, STAGE]
-// 0 = absent, 1 = present, 2 = modified, 3 = added
+/*** Status matrix format: [filepath, HEAD, WORKDIR, STAGE]
+     0 = absent, 1 = present, 2 = modified, 3 = added ***/
 for (const [filepath, head, workdir, stage] of status) {
   console.log(`${filepath}: HEAD=${head}, WORKDIR=${workdir}, STAGE=${stage}`);
 }
@@ -156,7 +156,7 @@ await git.commit({
 
 ```typescript
 const commits = await git.log({
-  depth: 10, // Optional: limit number of commits
+  depth: 10, /*** Optional: limit number of commits ***/
   dir: "./repo",
   fs,
   ref: "primary"
@@ -173,22 +173,22 @@ for (const commit of commits) {
 #### Creating and Switching Branches
 
 ```typescript
-// Create a new branch
+/*** Create a new branch/
 await git.branch({
-  checkout: true, // Optional: checkout immediately
+checkout: true, /*** Optional: checkout immediately ***/
   dir: "./repo",
   fs,
   ref: "feature-branch"
 });
 
-// Switch to existing branch
+/*** Switch to existing branch ***/
 await git.checkout({
   dir: "./repo",
   fs,
   ref: "primary"
 });
 
-// List branches
+/*** List branches ***/
 const branches = await git.listBranches({
   dir: "./repo",
   fs
@@ -225,7 +225,7 @@ await git.fetch({
 
 ```typescript
 await git.push({
-  force: false, // Optional: force push
+  force: false, /*** Optional: force push ***/
   dir: "./repo",
   fs,
   ref: "primary",
@@ -253,7 +253,7 @@ await git.merge({
 #### Resolving References
 
 ```typescript
-// Get the SHA of a reference
+/*** Get the SHA of a reference ***/
 const sha = await git.resolveRef({
   dir: "./repo",
   fs,
@@ -266,11 +266,11 @@ console.log(`HEAD points to: ${sha}`);
 #### Reading Objects
 
 ```typescript
-// Read a commit object
+/*** Read a commit object ***/
 const { object, type } = await git.readObject({
   dir: "./repo",
   fs,
-  oid: "abc123..." // commit SHA
+  oid: "abc123..." /*** commit SHA ***/
 });
 
 if (type === "commit") {
@@ -284,7 +284,7 @@ if (type === "commit") {
 ### Git Config
 
 ```typescript
-// Set user configuration
+/*** Set user configuration ***/
 await git.setConfig({
   dir: "./repo",
   fs,
@@ -299,7 +299,7 @@ await git.setConfig({
   value: "you@example.com"
 });
 
-// Read configuration
+/*** Read configuration ***/
 const name = await git.getConfig({
   dir: "./repo",
   fs,
@@ -335,7 +335,7 @@ await git.clone({
 
 ## Error Handling
 
-The library throws specific error types for different scenarios:
+The library throws specific error types for different scenarios:
 
 ```typescript
 import {
@@ -362,7 +362,7 @@ try {
 
 ## Performance Tips
 
-1. **Use shallow clones** for large repositories when you don’t need full history:
+1. **Use shallow clones** for large repositories when you don’t need full history:
     ```typescript
     await git.clone({
       depth: 1,
@@ -383,11 +383,11 @@ try {
     });
     ```
 
-3. **Batch operations** when possible instead of multiple individual calls.
+3. **Batch operations** when possible instead of multiple individual calls.
 
 ## Examples
 
-See the [examples](./docs/examples/) directory for complete working examples:
+See the [examples](./docs/examples/) directory for complete working examples:
 
 - [Basic Git Workflow](./docs/examples/basic-workflow.md)
 - [Working with Remotes](./docs/examples/remotes.md)
@@ -413,13 +413,13 @@ For complete API documentation, see:
 
 1. Ensure you have Deno installed
 2. Run type checking: `deno task check`
-3. Run tests: `deno task test` (when test suite is implemented)
+3. Run tests: `deno task test` (when test suite is implemented)
 4. Submit patches with clear descriptions
 
 ## License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
 ## Acknowledgments
 
-Based on the original [isomorphic-git](https://github.com/isomorphic-git/isomorphic-git) project, adapted and optimized for EOL with full TypeScript support.
+Based on the original [isomorphic-git](https://github.com/isomorphic-git/isomorphic-git) project, adapted and optimized for EOL with full TypeScript support.

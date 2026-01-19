@@ -10,8 +10,7 @@
  * @since 1.0.0
  */
 
-
-//// export
+/*** EXPORT ------------------------------------------- ***/
 
 export function assignDefined<T extends Record<string, any>>(target: T, ...sources: Partial<T>[]): T {
   for (const source of sources) {
@@ -30,5 +29,5 @@ export function assignDefined<T extends Record<string, any>>(target: T, ...sourc
 
 
 
-// Like Object.assign but ignore properties with undefined values
-// ref: https://stackoverflow.com/q/39513815
+/*** Like Object.assign but ignore properties with undefined values
+     ref: https://stackoverflow.com/q/39513815 ***/

@@ -10,8 +10,7 @@
  * @since 1.0.0
  */
 
-
-//// export
+/*** EXPORT ------------------------------------------- ***/
 
 export function arrayRange(start: number, end: number): number[] {
   const length = end - start;

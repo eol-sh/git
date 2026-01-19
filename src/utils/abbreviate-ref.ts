@@ -10,14 +10,11 @@
  * @since 1.0.0
  */
 
-
-//// util
+/*** UTILITY ------------------------------------------ ***/
 
 const abbreviateRx = new RegExp("^refs/(heads/|tags/|remotes/)?(.*)");
 
-
-
-//// export
+/*** EXPORT ------------------------------------------- ***/
 
 export function abbreviateRef(ref: string): string {
   const match = abbreviateRx.exec(ref);
